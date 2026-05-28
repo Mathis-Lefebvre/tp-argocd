@@ -1,256 +1,172 @@
-# Rapport de TP — Déploiement GitOps avec ArgoCD
-**Binôme :** DevHub Campus (Lab GitOps)
+# Compte-rendu de TP — GitOps & ArgoCD (DevHub Campus)
+**M2 Ingénierie Web**  
+**Binôme :** Mathis Lefebvre & Co
 
 ---
 
-## 1. Outillage (Étape 0)
+## 1. Versions des outils (Étape 0)
+Pour ce TP, voici l'environnement de dev qu'on a configuré :
 
-Voici les versions exactes des outils installés et configurés dans l'environnement de développement :
-
-*   **Kubectl (Client)** :
-    ```text
-    Client Version: v1.34.1
-    Kustomize Version: v5.7.1
-    ```
-*   **Helm** :
-    ```text
-    version.BuildInfo{Version:"v3.21.0", GitCommit:"e0878d41b711792be60777fd65ad23a101e6b85f", GoVersion:"go1.25.10"}
-    ```
-*   **ArgoCD CLI** :
-    ```text
-    argocd: v3.4.2+0dc6b1b
-      BuildDate: 2026-05-12T21:00:01Z
-      GitCommit: 0dc6b1b57dd5bb925d5b03c3d09419ab9fb4225e
-      GoVersion: go1.26.0
-    ```
-*   **Kind** :
-    ```text
-    kind v0.24.0 go1.22.6 linux/amd64
-    ```
-*   **Docker Server** : `v27.x.x`
+* **kubectl** : `Client Version: v1.34.1` / `Kustomize Version: v5.7.1`
+* **Helm** : `v3.21.0` (commit `e0878d41b711792be60777fd65ad23a101e6b85f`)
+* **ArgoCD CLI** : `v3.4.2+0dc6b1b` (Go `v1.26.0`)
+* **Kind** : `v0.24.0` (sur control-plane de 2 nœuds)
+* **Docker Engine** : `v27.x.x`
 
 ---
 
-## 2. Glossaire GitOps (Étape 2)
-
-*   **AppProject** : Ressource personnalisée (CRD) d'ArgoCD servant de frontière logique de sécurité (RBAC). Elle définit quels dépôts Git sont autorisés, dans quels clusters/namespaces les applications peuvent se déployer, et quels types de ressources Kubernetes (ex: Namespaces, Roles) elles ont le droit de créer.
-*   **Application** : CRD d'ArgoCD liant une source (dépôt Git, révision, chemin) à une destination (cluster Kubernetes, namespace) et définissant la politique de synchronisation (automatique ou manuelle).
-*   **ApplicationSet** : Générateur d'applications ArgoCD. Il permet de générer dynamiquement plusieurs ressources `Application` à partir de modèles (templates) et de générateurs (comme un générateur Git découvrant des dossiers/fichiers ou un générateur de Pull Requests).
-*   **Boucle de Réconciliation** : Processus continu exécuté par le contrôleur ArgoCD qui compare l'état souhaité (défini dans Git) et l'état réel (le cluster Kubernetes). Si un écart (drift) est détecté, ArgoCD applique les corrections nécessaires (si l'auto-sync/self-heal est activé) ou signale l'état `OutOfSync`.
-*   **Self-Healing (Auto-Correction)** : Fonctionnalité qui réaligne automatiquement le cluster avec Git si une modification manuelle directe (drift) est effectuée sur le cluster.
-*   **Pruning (Élagage)** : Nettoyage automatique des ressources sur le cluster Kubernetes lorsque leurs définitions correspondantes sont supprimées du dépôt Git.
-*   **Drift (Dérive)** : Écart constaté entre l'état déclaré dans le dépôt Git (source de vérité) et l'état physique actuel des ressources sur le cluster Kubernetes.
-*   **Sync Wave (Vague de Synchronisation)** : Mécanisme ordonnant le déploiement des ressources au sein d'une même application (ex: appliquer les bases de données avant les serveurs web) à l'aide d'annotations comme `argocd.argoproj.io/sync-wave`.
-
----
-
-## 3. Principes du GitOps en 1 Page (Étape 2)
-
-Le GitOps repose sur quatre grands principes :
-1.  **Description déclarative du système** : L'état souhaité de l'infrastructure et des applications est stocké sous forme de manifests (YAML/Helm).
-2.  **Versionnage et source unique de vérité** : L'état souhaité est hébergé dans un système de contrôle de version (Git). Toute modification passe par une Pull Request et un historique complet est conservé.
-3.  **Approbation automatique de l'état** : Les agents logiciels récupèrent automatiquement l'état décrit depuis Git et l'appliquent au cluster (Modèle Pull).
-4.  **Boucle logicielle d'auto-correction** : Des agents surveillent en permanence le cluster pour corriger les dérives non déclarées.
-
-### Modèle Push vs. Modèle Pull
-
-```mermaid
-graph TD
-    subgraph Mode Push (CI/CD classique)
-        A[Code Commité] --> B[CI Runner / GitHub Actions]
-        B -->|kubectl apply| C((Cluster K8s))
-        note1[Le Runner doit posséder les accès admin au Cluster - Risque sécurité]
-    end
-
-    subgraph Mode Pull (GitOps - ArgoCD)
-        D[Git Repository] <--- E[Agent ArgoCD interne au cluster]
-        E -->|Réconciliation interne| F((Cluster K8s))
-        note2[Aucun accès externe n'est exposé. ArgoCD tire la configuration depuis l'intérieur.]
-    end
-```
+## 2. Notre glossaire GitOps (Étape 2)
+* **AppProject** : C'est la ressource ArgoCD qui sert à mettre des barrières de sécurité (RBAC). On y définit quels dépôts Git sont autorisés, sur quels clusters/namespaces on a le droit de déployer, et les types de ressources autorisées (pour éviter qu'une appli ne crée des namespaces par exemple).
+* **Application** : C'est ce qui fait le lien entre une source (dépôt Git, répertoire, branche/tag) et une destination (namespace/cluster K8s). C'est là qu'on configure les options de synchronisation automatique ou manuelle.
+* **ApplicationSet** : C'est un générateur d'Applications. Au lieu d'écrire 50 fichiers d'Application à la main, on écrit un template d'ApplicationSet et un générateur (Git, PR, List...) qui crée les ressources d'Application à la volée.
+* **Boucle de réconciliation** : Le mécanisme central du contrôleur d'ArgoCD qui tourne en tâche de fond. Il compare toutes les X secondes l'état décrit dans Git et l'état réel sur le cluster. S'il y a un décalage, il remonte une alerte ou corrige tout seul.
+* **Self-Healing** : Si quelqu'un modifie une ressource directement sur le cluster (par exemple avec un `kubectl edit`), le contrôleur ArgoCD va écraser la modif manuelle pour remettre ce qui est écrit dans Git.
+* **Pruning** : C'est le fait de supprimer automatiquement du cluster les ressources Kubernetes dont on a supprimé le code/fichier dans le dépôt Git.
+* **Drift** : Le décalage (dérive) constaté entre la config déclarée dans le Git et les ressources physiques déployées sur K8s.
+* **Sync Wave** : C'est une annotation (`argocd.argoproj.io/sync-wave`) qui permet d'ordonner le déploiement de nos composants (par exemple déployer d'abord la base de données avant de lancer le backend).
 
 ---
 
-## 4. Choix d'Implémentation & Sécurité (Étapes 3 & 4)
+## 3. Le GitOps en résumé (Étape 2)
+Le GitOps se base sur quatre piliers :
+1. Une description déclarative (tout notre cluster est décrit sous forme de YAML/Helm).
+2. Git comme unique source de vérité (tous les changements passent par des commits/PRs, ce qui donne un historique clair).
+3. Application automatique (un agent interne applique les modifs automatiquement sans intervention humaine).
+4. Réconciliation et correction des dérives en continu.
 
-### Containerisation & Bonnes Pratiques
-*   **Multi-stage builds** : Utilisés pour séparer les outils de build des runtimes de production. L'image de production finale ne contient aucun compilateur ni outil superflu.
-*   **Minimalisme (Images légères)** :
-    *   `annuaire` : Image `node:20-alpine`, taille finale **~130 Mo**.
-    *   `planning` : Image `python:3.12-slim` avec environnement virtuel `/opt/venv`, taille finale **~155 Mo**.
-    *   `notif` : Compilé statiquement en Go et exécuté sur une image de base `gcr.io/distroless/static-debian12`, taille finale **~22 Mo**.
-*   **Sécurité runtime** :
-    *   Utilisation d'utilisateurs non-root explicites (`node` (1000) pour Node.js, `nonroot` (1001) pour Python/Go).
-    *   Exposition des ports non privilégiés (`8080`).
-    *   Ajout des labels standardisées OCI (`org.opencontainers.image.source`).
-
-### Configuration Kubernetes & Helm (Étape 4)
-*   **Helpers standardisés** : Implémentation des labels standardisés (`app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/part-of: devhub-campus`, `app.kubernetes.io/managed-by: Helm`).
-*   **SecurityContext strict** :
-    *   Au niveau du Pod : `runAsNonRoot: true`, `runAsUser: 1001` (ou `1000`).
-    *   Au niveau Container : `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true` (pour bloquer l'écriture à la racine), et suppression de toutes les capabilities (`capabilities: { drop: ["ALL"] }`).
-*   **Probes de santé** : Configuration de `livenessProbe` et `readinessProbe` pointant sur l'endpoint `/healthz` exposé par chaque application, évitant ainsi le routage de trafic vers des conteneurs non initialisés.
-*   **Gestion des ressources** : Allocation stricte de requêtes et limites CPU/Mémoire pour prémunir le cluster des fuites de mémoire.
+### Push vs. Pull
+* **En mode Push (CI classique)** : Le runner de CI (GitHub Actions) a les clés admin du cluster et pousse les modifs avec un `kubectl apply`. C'est un risque de sécurité car si la CI est compromise, le pirate a accès au cluster entier.
+* **En mode Pull (GitOps)** : C'est l'agent ArgoCD (qui tourne *dans* le cluster) qui vient lire le dépôt Git et applique les changements en local. Aucun droit d'accès admin du cluster n'est exposé à l'extérieur.
 
 ---
 
-## 5. App of Apps vs Direct kubectl apply (Étape 6)
+## 4. Choix d'implémentation Docker et Helm (Étapes 3 & 4)
 
-### Pourquoi le pattern App of Apps n'est-il pas équivalent à une simple `kubectl apply -f apps/dev/` ?
+### Côté Docker (Containerisation)
+* **Multi-stage builds** : On a séparé la phase de compilation (Go, npm) de l'image de run finale pour ne pas embarquer d'outils inutiles.
+* **Images minimales** :
+  * `annuaire` : basé sur `node:20-alpine` (~130 Mo).
+  * `planning` : basé sur `python:3.12-slim` avec un venv sans dépendances de build (~155 Mo).
+  * `notif` : binaire Go statique copié dans un `distroless/static-debian12` (~22 Mo seulement et pas de shell disponible).
+* **Runtime non-root** : On a forcé l'utilisation d'utilisateurs non-privilégiés (`node` ou `nonroot`) et des ports d'écoute non-privilégiés (port `8080`).
 
-1.  **Gestion du cycle de vie complet (Lifecycle)** : Avec `kubectl apply`, la suppression d'un fichier local ne supprime pas la ressource correspondante sur le cluster (pas d'élagage). ArgoCD, via la politique de `prune`, détecte la suppression d'un fichier d'application dans Git et supprime automatiquement toutes les ressources associées sur le cluster.
-2.  **Traçabilité et Auditabilité** : L'historique d'ArgoCD garde une trace de chaque synchronisation, de qui l'a demandée, et de l'état du cluster à cet instant précis. `kubectl apply` n'offre aucun historique applicatif consolidé.
-3.  **Prévention du Drift** : Une application déployée via `kubectl apply` peut être modifiée à la main sur le cluster sans que personne ne s'en rende compte. ArgoCD détecte instantanément cette dérive et peut la corriger activement.
-4.  **Dépendances et Ordre** : Le pattern App of Apps permet de structurer les vagues de synchronisation à travers les applications de manière coordonnée, tandis que `kubectl apply` applique tout en vrac, pouvant générer des erreurs transitoires.
-
----
-
-## 6. ApplicationSets & Previews (Étape 7)
-
-### Choix du Generator : Pull Request vs. Git Generator
-Pour la production, le **Pull Request Generator** (Option B) est à privilégier car il s'intègre directement aux APIs de la forge logicielle (GitHub, GitLab), créant un environnement de preview uniquement lorsqu'une PR est ouverte et le nettoyant à sa fermeture. 
-Pour notre démonstration locale et afin de fonctionner de manière autonome sans API token externe, nous avons utilisé un **List Generator** paramétrable simulant les branches de fonctionnalités (comme `feature-demo-prof`).
-
-### Surcharges & Paramétrage Dynamique
-*   **Namespace dynamique** : Chaque preview est déployée dans son propre namespace isolé : `devhub-preview-{{branch_slug}}`.
-*   **Ingress dynamique** : Le host de l'ingress est surchargé dynamiquement via les paramètres Helm de l'ApplicationSet : `annuaire-{{branch_slug}}.devhub.local`.
-*   **Nettoyage automatique** : La configuration `syncPolicy.automated.prune: true` garantit la suppression automatique des ressources du cluster dès que la branche est retirée de l'ApplicationSet.
+### Côté Helm & Kubernetes
+* **Labels** : Utilisation des labels standards OCI et Kubernetes dans nos helpers.
+* **Sécurité Pod/Container** : On a durci les SecurityContexts avec `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, et `readOnlyRootFilesystem: true` (racine en lecture seule pour bloquer les écritures malveillantes).
+* **Sondes** : Configuration systématique des `livenessProbe` et `readinessProbe` sur `/healthz`.
+* **Ressources** : Définition des requêtes et limites de CPU/mémoire pour éviter que nos conteneurs ne saturent le cluster.
 
 ---
 
-## 7. Le Bestiaire ArgoCD (Étape 8)
-
-### Scénario 1 : Drift par modification manuelle directe
-*   **Action** : Modification manuelle du nombre de réplicas du déploiement `annuaire` dans le namespace `devhub-dev` de 1 à 3 via `kubectl scale deployment annuaire-dev-annuaire --replicas=3 -n devhub-dev`.
-*   **Constat** : L'interface d'ArgoCD passe instantanément en état `OutOfSync` sur le déploiement.
-*   **Résolution automatique (Self-Heal)** : Comme `selfHeal: true` est activé sur `annuaire-dev`, le contrôleur d'ArgoCD intervient immédiatement et re-scale le déploiement à 1 réplica pour correspondre à Git.
-
-### Scénario 2 : Drift persistant (Désactivation temporaire de l'auto-sync)
-*   **Action** : Désactivation temporaire de l'auto-sync sur `planning-dev`, puis modification manuelle d'une variable d'environnement du pod.
-*   **Constat** : ArgoCD affiche l'application en jaune/orange (`OutOfSync`). Aucun self-healing ne se produit.
-*   **Résolution** : Un clic sur le bouton `Sync` ou la réactivation de l'auto-sync réaligne instantanément le déploiement avec Git.
-
-### Scénario 3 : Pruning (Suppression de ressource)
-*   **Action** : Suppression du fichier de service Ingress dans le chart Helm de l'application `notif`.
-*   **Constat** : Dès le commit et push, ArgoCD supprime la ressource `Ingress` physique sur le cluster. L'état reste `Healthy` et `Synced`.
-
-### Scénario 4 : Rollback d'urgence via l'UI
-*   **Action** : Déploiement d'un commit défectueux (ex: mauvaise image). L'application plante. Clic sur `Rollback` dans l'UI d'ArgoCD vers la révision stable précédente.
-*   **Impact** : Le cluster revient immédiatement à l'état stable précédent. 
-*   *Note de production* : En GitOps pur, le rollback doit être fait dans Git (via un `git revert`) car le fait de faire un rollback UI met l'application en `OutOfSync` permanent puisque Git contient toujours la version défectueuse. C'est une solution de secours temporaire.
-
-### Scénario 5 : Hooks de cycle de vie (`PreSync` & `PostSync`)
-*   **Action** : Ajout d'un job de migration de base de données avec l'annotation `argocd.argoproj.io/hook: PreSync`.
-*   **Constat** : ArgoCD exécute le job de migration, attend sa réussite, puis déploie le nouveau conteneur applicatif.
-
-### Scénario 6 : Sync Waves
-*   **Action** : Attribution de la wave `-1` à la base de données, `0` à l'API backend et `1` au frontend.
-*   **Constat** : ArgoCD orchestre le déploiement de manière séquentielle, s'assurant que la base de données est prête avant d'initier le déploiement du backend.
+## 5. Pourquoi "App of Apps" ? (Étape 6)
+Pourquoi ne pas faire juste un `kubectl apply -f apps/dev/` ?
+* **Nettoyage automatique** : `kubectl apply` ne supprime rien si on retire un fichier YAML. ArgoCD détecte les suppressions dans le dépôt Git et supprime la ressource correspondante du cluster (pruning).
+* **Gestion des dérives** : Un `kubectl apply` n'empêchera pas un développeur de modifier à la main un déploiement sur le cluster. ArgoCD le verra et le corrigera.
+* **Visibilité** : Avec App of Apps, toutes nos applications filles sont reliées à une application racine (`root`). On a un arbre complet de dépendance visible dans l'UI d'ArgoCD.
 
 ---
 
-## 8. Sécurité, Observabilité & Alerting (Étape 9)
-
-### RBAC ArgoCD
-Nous avons configuré un compte local `developer` et lui avons attribué les permissions suivantes dans `platform/argocd/values.yaml` :
-*   **Lecture globale** : Possibilité de lister et d'inspecter toutes les applications du projet `devhub` (afin d'avoir une vision globale du système).
-*   **Action de synchronisation limitée** : Autorisation de synchroniser uniquement les applications dont le nom contient `annuaire` (bloquant ainsi toute action de sync sur `planning` ou `notif`).
-
-*Validation en CLI* :
-```bash
-# Tentative de sync sur annuaire-dev (Autorisé) :
-$ argocd app sync annuaire-dev
-# => Succeeded!
-
-# Tentative de sync sur planning-dev (Refusé) :
-$ argocd app sync planning-dev
-# => Fatal error: permission denied: applications, sync, devhub/planning-dev, sub: developer
-```
-
-### Observabilité & Métriques utiles
-Trois métriques clés exposées par l'endpoint Prometheus d'ArgoCD sont indispensables pour la production :
-1.  `argocd_app_info` : Permet de suivre l'état de santé globale et le statut de synchronisation (`Healthy`, `Degraded`, `OutOfSync`) de toutes les applications.
-2.  `argocd_app_reconcile_duration_seconds` : Mesure le temps nécessaire à ArgoCD pour réconcilier l'état du cluster avec Git. Une augmentation indique des lenteurs réseau ou de surcharge du contrôleur.
-3.  `argocd_app_sync_total` : Permet de compter le nombre de synchronisations exécutées, utile pour détecter des boucles infinies de sync (sync loops) dues à des conflits de contrôleurs.
-
-### Alerting & Notifications
-Nous avons activé le sous-chart `argocd-notifications` et configuré un notifier de type Webhook. En cas d'échec de synchronisation (`Failed` ou `Error`), ArgoCD envoie automatiquement un payload JSON contenant :
-*   Le nom de l'application en échec.
-*   La révision Git cible.
-*   L'erreur de déploiement exacte retournée par Kubernetes.
+## 6. ApplicationSets et previews éphémères (Étape 7)
+* **Générateur choisi** : En conditions réelles, on utiliserait le *Pull Request Generator* pour lier les déploiements aux ouvertures/fermetures de PR. Pour notre maquette locale (sans token d'API GitHub externe), on a opté pour un *List Generator* paramétrable avec une branche de test (`feature-demo-prof`).
+* **Dynamisation** :
+  * Les namespaces sont créés à la volée avec le nom de la branche : `devhub-preview-{{branch_slug}}`.
+  * Les hôtes Ingress sont surchargés pour être uniques : `annuaire-{{branch_slug}}.devhub.local`.
+  * Le nettoyage est automatique : dès que la branche est retirée du code, ArgoCD supprime le namespace de preview grâce au `prune: true`.
 
 ---
 
-## 9. Synthèse comparative & Rétrospective (Étapes 11)
+## 7. Les tests de comportement ArgoCD (Étape 8)
 
-### Matrice comparative des outils de livraison continue
+* **Scénario 1 (Drift manuel)** : On a scalé manuellement le déploiement `annuaire` à 3 réplicas. L'application est passée en `OutOfSync` sur l'UI, et ArgoCD l'a immédiatement ramené à 1 réplica tout seul grâce au `selfHeal: true`.
+* **Scénario 2 (Drift persistant)** : En coupant l'auto-sync sur `planning-dev`, nos modifs manuelles sont restées actives. ArgoCD affichait l'appli en jaune/orange (`OutOfSync`) mais n'y a pas touché tant qu'on n'a pas cliqué sur "Sync".
+* **Scénario 3 (Pruning)** : En retirant la ressource Ingress de `notif` de notre code Helm, ArgoCD a instantanément supprimé la ressource physique sur le cluster K8s après notre push.
+* **Scénario 4 (Rollback UI)** : On a testé le rollback manuel depuis l'UI d'ArgoCD suite à un déploiement foireux. Ça fonctionne bien pour corriger l'urgence, mais cela met l'appli en `OutOfSync` permanent car le dépôt Git contient toujours le mauvais commit. La vraie solution propre en GitOps est de faire un `git revert`.
+* **Scénario 5 (PreSync Hooks)** : On a testé un job annoté en `PreSync`. ArgoCD le lance et attend qu'il se termine avec succès avant de mettre à jour le déploiement applicatif.
+* **Scénario 6 (Sync Waves)** : On a attribué des valeurs de wave différentes (ex: base de données à -1, API à 0, front à 1) et on a constaté qu'ArgoCD respecte bien cette séquence lors de la synchronisation.
+
+---
+
+## 8. Sécurité et monitoring (Étape 9)
+
+### RBAC
+On a créé un compte `developer` restreint dans `platform/argocd/values.yaml` :
+* Il peut lister et lire toutes les applications pour avoir de la visibilité.
+* Il a uniquement le droit de synchroniser (`sync`) les applications qui touchent au service `annuaire` (bloqué pour `planning` et `notif`).
+
+On a pu valider les règles en ligne de commande :
+* `argocd app sync annuaire-dev` -> Passe avec succès.
+* `argocd app sync planning-dev` -> Bloqué avec une erreur `permission denied`.
+
+### Métriques utiles pour la prod
+1. `argocd_app_info` : pour suivre l'état de santé (`Healthy`/`Degraded`) et de synchro de nos applis dans nos dashboards Grafana.
+2. `argocd_app_reconcile_duration_seconds` : pour mesurer le temps que met le contrôleur à comparer le Git et le cluster (pratique pour repérer les surcharges).
+3. `argocd_app_sync_total` : pour compter le nombre de synchros lancées et détecter d'éventuelles boucles de synchronisation infinies.
+
+### Alertes & Notifications
+On a activé le module de notifications intégré d'ArgoCD et configuré un webhook vers `webhook.site`. Dès qu'une application passe au statut `Failed`, ArgoCD pousse un JSON contenant le nom de l'app, le commit cible et le détail de l'erreur Kubernetes.
+
+---
+
+## 9. Analyse comparative (Étape 11)
+
+### Tableau comparatif
 
 | Critère | Flux v2 | Argo CD | Helm (Direct) |
 | :--- | :--- | :--- | :--- |
-| **Modèle** | Pull (Reconciliation active) | Pull (Reconciliation active) | Push (CI lance la commande) |
-| **Interface Graphique** | Non (Nécessite des extensions) | Oui (UI Web native très puissante) | Non (CLI uniquement) |
-| **Gestion du Drift** | Détecté et corrigé automatiquement | Détecté et corrigé automatiquement | Non détecté en continu |
-| **Multi-tenancy & RBAC** | Très fort (basé sur le RBAC K8s) | Fort (RBAC applicatif interne) | Limité (RBAC du compte de la CI) |
-| **App of Apps / Dépendances** | Via Kustomization dependency | Via App of Apps / Sync Waves | Via Helm charts dépendances |
+| **Modèle** | Pull | Pull | Push |
+| **Interface Graphique** | Non (via extensions tierces) | Oui (UI native géniale) | Non |
+| **Gestion du Drift** | Auto-correction | Auto-correction | Non gérée |
+| **Multi-tenancy & RBAC** | Basé sur le RBAC K8s | RBAC interne propre | RBAC du compte de CI |
+| **App of Apps** | Via dépendances Kustomize | Via App of Apps / Sync Waves | Via sous-charts Helm |
 
-### Analyse des risques de sécurité en production
-Le passage à un modèle GitOps introduit des vecteurs d'attaque spécifiques :
-1.  **Dépôts Git compromis** : Si un attaquant obtient l'accès en écriture au dépôt Git, il peut déployer n'importe quelle ressource sur le cluster. *Mitigation* : Protection stricte des branches (main), revues de code obligatoires, et signature des commits GPG.
-2.  **Secrets en clair dans Git** : GitOps pousse à tout stocker dans Git, y compris les secrets d'applications. *Mitigation* : Utiliser des outils de chiffrement comme **SealedSecrets** (Bitnami) ou brancher ArgoCD sur un gestionnaire de secrets externe (HashiCorp Vault, AWS Secrets Manager) via **External Secrets Operator**.
-3.  **Privilèges d'ArgoCD** : ArgoCD s'exécute souvent avec des privilèges de type `cluster-admin`. *Mitigation* : Restreindre les privilèges des projets ArgoCD via les `AppProject` et limiter les namespaces cibles.
+### Gestion des risques en production
+Déployer ArgoCD brut présente des risques de sécurité majeurs qu'il faut couvrir :
+1. **Accès en écriture sur Git** : Si un pirate contrôle le dépôt Git, il contrôle votre cluster. *Solution* : Protéger les branches principales, exiger des revues de code (PR) et signer les commits.
+2. **Secrets stockés dans Git** : Ne jamais stocker de mots de passe en clair dans Git. *Solution* : Utiliser Sealed Secrets (chiffré dans le Git) ou brancher External Secrets Operator pour tirer les secrets d'un Vault.
+3. **Privilèges d'ArgoCD** : Le contrôleur a souvent des droits de `cluster-admin`. *Solution* : Limiter la portée d'ArgoCD via les `AppProject` et restreindre les namespaces cibles.
 
 ---
 
-## 10. Commandes utilisées durant le TP
-
-Voici la liste ordonnée des principales commandes exécutées pour accomplir ce TP :
+## 10. Historique des commandes lancées durant le TP
+Voici en gros l'enchaînement des commandes qu'on a utilisées :
 
 ```bash
-# Étape 0 : Vérification de l'environnement
+# Vérif et démarrage
 make tools-check
-
-# Étape 1 : Démarrage du cluster Kind
 make cluster-up
 
-# Étape 2 : Configuration DNS dans WSL
+# Config DNS Windows hosts & WSL
 sudo bash -c "echo -e '\n127.0.0.1  argocd.devhub.local\n127.0.0.1  annuaire.devhub.local\n127.0.0.1  planning.devhub.local\n127.0.0.1  notif.devhub.local' >> /etc/hosts"
 
-# Étape 3 : Containerisation & Builds locaux
+# Build et import des images dans Kind
 docker build -t ghcr.io/binome/annuaire:dev services/annuaire
 docker build -t ghcr.io/binome/planning:dev services/planning
 docker build -t ghcr.io/binome/notif:dev services/notif
-
-# Chargement des images dans Kind
 kind load docker-image ghcr.io/binome/annuaire:dev --name devhub
 kind load docker-image ghcr.io/binome/planning:dev --name devhub
 kind load docker-image ghcr.io/binome/notif:dev --name devhub
 
-# Étape 4 : Lancement du serveur Git local
+# Démarrage du serveur git local pour ArgoCD
 git daemon --base-path=. --export-all --enable=receive-pack --reuseaddr --port=9000 --verbose &
 
-# Étape 5 : Installation d'ArgoCD
+# Installation de la stack ArgoCD
 make argocd-install
 make argocd-password
 
-# Étape 6 : Application manuelle du projet et du Bootstrapper (App of Apps)
+# Bootstrapping (App of Apps)
 kubectl apply -f platform/projects/devhub.yaml
 kubectl apply -f platform/bootstrap/root-app.yaml
 
-# Étape 7 : Simulation d'une branche de preview
+# Test des previews sur branche feature
 git checkout -b feature-demo-prof
-git commit -am "fix preview images in values-preview.yaml"
+git commit -am "fix preview configurations"
 git push git://127.0.0.1:9000/ feature-demo-prof
 argocd app sync root --prune
-
-# Rafraîchissement des applications générées
 argocd app get annuaire-preview-feature-demo-prof --refresh
 argocd app sync annuaire-preview-feature-demo-prof
 
-# Vérification des endpoints de preview
-curl -H "Host: annuaire-feature-demo-prof.devhub.local" http://localhost/healthz
-
-# Étape 9 : Test des accès RBAC
+# Test du RBAC developer
 argocd login argocd.devhub.local --insecure --username developer --password developerpassword
-argocd app sync annuaire-dev    # Succès
-argocd app sync planning-dev    # Échec (RBAC Bloqué)
+argocd app sync annuaire-dev    # OK
+argocd app sync planning-dev    # Bloqué (Permission Denied)
 ```

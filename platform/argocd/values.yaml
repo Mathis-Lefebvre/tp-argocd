@@ -14,20 +14,16 @@ configs:
     # désactive le TLS interne — l'ingress-nginx est devant pour le HTTPS.
     server.insecure: true
   cm:
-    # TODO étape 9 : activer les notifications / l'OIDC / des comptes locaux.
-    # Pour l'étape 5, vous n'avez rien à ajouter ici.
     timeout.reconciliation: 180s
-    # TODO étape 9 : ajouter des `accounts.<user>: login, apiKey` pour
-    # créer un compte non-admin destiné aux tests RBAC.
+    accounts.developer: login, apiKey
 
-  # TODO étape 9 : ajouter le RBAC ArgoCD ici.
-  # Référence : https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/
-  # rbac:
-  #   policy.default: ""
-  #   policy.csv: |
-  #     # TODO : un rôle developer + binding du compte créé ci-dessus
-  #     p, role:developer, applications, get, devhub/*, allow
-  #     # TODO : compléter pour autoriser le sync uniquement sur ses Apps
+  rbac:
+    policy.default: ""
+    policy.csv: |
+      # Le rôle developer voit tout mais ne peut sync que ses propres apps (contenant 'annuaire')
+      p, role:developer, applications, get, devhub/*, allow
+      p, role:developer, applications, sync, devhub/*annuaire*, allow
+      g, developer, role:developer
 
 server:
   ingress:
@@ -40,11 +36,29 @@ server:
       nginx.ingress.kubernetes.io/backend-protocol: HTTP
     tls: false
 
-# TODO étape 9 (défi) : activer la sous-chart notifications et
-# brancher un webhook qui envoie un message à chaque sync échouée.
-# notifications:
-#   enabled: true
-#   ...
+notifications:
+  enabled: true
+  secret:
+    create: true
+  notifiers:
+    service.webhook: |
+      url: https://webhook.site/298495a6-574f-4d69-b52b-2a62ffb76e27
+      headers:
+        - name: Content-Type
+          value: application/json
+  templates:
+    template.sync-failed: |
+      message: |
+        {
+          "application": "{{.app.metadata.name}}",
+          "revision": "{{.app.status.sync.revision}}",
+          "status": "{{.app.status.operationState.phase}}",
+          "error": "{{.app.status.operationState.message}}"
+        }
+  triggers:
+    trigger.on-sync-failed: |
+      - when: app.status.operationState.phase in ['Failed', 'Error']
+        send: [sync-failed]
 
 # Garde-fou ressources — utile en TP pour ne pas saturer la machine.
 controller:
