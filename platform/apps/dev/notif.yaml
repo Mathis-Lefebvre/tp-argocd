@@ -25,6 +25,9 @@ spec:
     namespace: devhub-dev
 
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
