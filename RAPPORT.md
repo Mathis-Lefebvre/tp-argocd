@@ -1,5 +1,5 @@
 # Compte-rendu de TP — GitOps & ArgoCD (DevHub Campus)
-**M2 Ingénierie Web**  
+**5ESGI SRC**  
 **Étudiant :** Mathis Lefebvre
 
 ---
