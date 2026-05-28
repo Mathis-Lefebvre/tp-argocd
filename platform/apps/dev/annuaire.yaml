@@ -14,14 +14,10 @@ spec:
   project: devhub
 
   source:
-    # TODO : URL de votre fork.
-    repoURL: https://github.com/<votre-handle>/devhub-campus.git
+    repoURL: git://host.docker.internal:9000/
     targetRevision: main
-    # TODO : chemin vers le chart Helm du service.
     path: services/annuaire/chart
     helm:
-      # TODO : pointez vers le bon fichier de values.
-      # Indice : il y en a un par environnement.
       valueFiles:
         - values-dev.yaml
 

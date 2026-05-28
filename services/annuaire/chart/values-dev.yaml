@@ -1,5 +1,6 @@
-# Surcharges pour l'environnement de développement (namespace devhub-dev).
-# Ne mettez ICI que ce qui diffère de values.yaml.
+image:
+  repository: ghcr.io/binome/annuaire
+  tag: dev
 
 ingress:
   enabled: true

@@ -14,8 +14,7 @@ spec:
   project: devhub
 
   source:
-    # TODO : URL de votre fork.
-    repoURL: https://github.com/<votre-handle>/devhub-campus.git
+    repoURL: git://host.docker.internal:9000/
     targetRevision: main
     path: services/planning/chart
     helm:
