@@ -1,6 +1,6 @@
-# Surcharges pour les environnements de preview (étape 7).
-# L'ApplicationSet va probablement surcharger `ingress.host` à la volée par branche
-# via `parameters` — réfléchissez à ce qu'il faut laisser ici vs. surcharger.
+image:
+  repository: ghcr.io/binome/annuaire
+  tag: dev
 
 replicaCount: 1
 
