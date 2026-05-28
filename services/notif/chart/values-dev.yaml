@@ -1,3 +1,7 @@
+image:
+  repository: ghcr.io/binome/notif
+  tag: dev
+
 ingress:
   enabled: true
   host: notif.devhub.local
