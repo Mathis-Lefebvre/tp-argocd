@@ -1,6 +1,6 @@
 # Compte-rendu de TP — GitOps & ArgoCD (DevHub Campus)
 **M2 Ingénierie Web**  
-**Binôme :** Mathis Lefebvre & Co
+**Étudiant :** Mathis Lefebvre
 
 ---
 
