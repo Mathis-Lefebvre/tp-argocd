@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Présentation Orale — GitOps & ArgoCD | Mathis Lefebvre</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark:       #0d1117;
+      --bg-card:       #161b22;
+      --bg-card2:      #1c2333;
+      --bg-card3:      #21262d;
+      --accent-green:  #3fb950;
+      --accent-blue:   #58a6ff;
+      --accent-purple: #bc8cff;
+      --accent-orange: #f0883e;
+      --accent-red:    #f85149;
+      --accent-teal:   #39d3bb;
+      --text-primary:  #f0f6fc;
+      --text-secondary:#8b949e;
+      --text-muted:    #484f58;
+      --border:        #30363d;
+      --border-light:  #21262d;
+      --gradient-hero: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a2332 100%);
+      --gradient-slide: linear-gradient(135deg, #0d1117 0%, #0e1f2f 100%);
+      --gradient-accent: linear-gradient(135deg, #3fb950, #58a6ff);
+      --shadow-lg:     0 16px 48px rgba(0,0,0,0.6);
+      --shadow-glow-green: 0 0 24px rgba(63,185,80,0.25);
+      --shadow-glow-blue:  0 0 24px rgba(88,166,255,0.25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+
+    /* ─────────────── COVER PAGE ─────────────── */
+    .cover {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: var(--gradient-hero);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 60px 50px;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(63,185,80,0.08) 0%, transparent 70%);
+      top: -200px; left: -200px;
+    }
+    .cover::after {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(88,166,255,0.1) 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(63,185,80,0.15);
+      border: 1px solid rgba(63,185,80,0.4);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent-green);
+      margin-bottom: 30px;
+      position: relative; z-index:1;
+    }
+
+    .cover h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1.1;
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      position: relative; z-index:1;
+    }
+
+    .cover-subtitle {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 50px;
+      position: relative; z-index:1;
+    }
+
+    .cover-divider {
+      width: 80px; height: 3px;
+      background: var(--gradient-accent);
+      border-radius: 2px;
+      margin: 0 auto 50px;
+      position: relative; z-index:1;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative; z-index:1;
+    }
+
+    .cover-meta-item {
+      text-align: center;
+    }
+    .cover-meta-item .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .cover-meta-item .value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .cover-logo-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 60px;
+      position: relative; z-index:1;
+    }
+
+    .tech-pill {
+      padding: 8px 20px;
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tech-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-green { background: var(--accent-green); }
+    .dot-blue  { background: var(--accent-blue); }
+    .dot-purple{ background: var(--accent-purple); }
+
+    /* ─────────────── TABLE OF CONTENTS ─────────────── */
+    .toc-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: var(--bg-dark);
+      padding: 70px 60px;
+      page-break-after: always;
+    }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent-green);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 40px;
+    }
+    .section-title span {
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .toc-num {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--gradient-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--bg-dark);
+      flex-shrink: 0;
+    }
+
+    .toc-text .toc-chapter { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing:1px; }
+    .toc-text .toc-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+    /* ─────────────── SLIDE PAGE ─────────────── */
+    .slide {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: var(--gradient-slide);
+      padding: 55px 60px;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide::before {
+      content: '';
+      position: absolute;
+      width: 350px; height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(63,185,80,0.05) 0%, transparent 70%);
+      top: -100px; right: -100px;
+    }
+
+    .slide-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      position: relative; z-index:1;
+    }
+
+    .slide-number {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: var(--gradient-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--bg-dark);
+      flex-shrink: 0;
+    }
+
+    .slide-header-text .slide-chapter {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent-green);
+    }
+    .slide-header-text .slide-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .slide-body { position: relative; z-index:1; }
+
+    /* ─────────────── CONTENT COMPONENTS ─────────────── */
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 18px;
+    }
+    .card.accent-green { border-left: 4px solid var(--accent-green); }
+    .card.accent-blue  { border-left: 4px solid var(--accent-blue);  }
+    .card.accent-purple{ border-left: 4px solid var(--accent-purple);}
+    .card.accent-orange{ border-left: 4px solid var(--accent-orange);}
+    .card.accent-red   { border-left: 4px solid var(--accent-red);   }
+    .card.accent-teal  { border-left: 4px solid var(--accent-teal);  }
+
+    .card h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .card p, .card li {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .card ul { padding-left: 18px; }
+    .card li { margin-bottom: 6px; }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .tag-green  { background: rgba(63,185,80,0.15);  color: var(--accent-green);  }
+    .tag-blue   { background: rgba(88,166,255,0.15); color: var(--accent-blue);   }
+    .tag-purple { background: rgba(188,140,255,0.15);color: var(--accent-purple); }
+    .tag-orange { background: rgba(240,136,62,0.15); color: var(--accent-orange); }
+    .tag-red    { background: rgba(248,81,73,0.15);  color: var(--accent-red);    }
+    .tag-teal   { background: rgba(57,211,187,0.15); color: var(--accent-teal);   }
+
+    code, .code-inline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--bg-card3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 2px 8px;
+      color: var(--accent-teal);
+    }
+
+    .code-block {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+    .code-block .cb-header {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--accent-teal);
+      white-space: pre-wrap;
+      line-height: 1.7;
+    }
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .keyword { color: var(--accent-blue); }
+    .code-block .string  { color: var(--accent-orange); }
+    .code-block .value   { color: var(--accent-green); }
+
+    /* Script oral */
+    .oral-script {
+      background: rgba(88,166,255,0.06);
+      border: 1px solid rgba(88,166,255,0.25);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-top: 18px;
+    }
+    .oral-script-header {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .oral-script-header::before {
+      content: '🎙️';
+      font-size: 14px;
+    }
+    .oral-script p {
+      font-size: 13px;
+      color: #a0b4cc;
+      line-height: 1.8;
+      font-style: italic;
+    }
+
+    /* Demo step */
+    .demo-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .demo-step-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--gradient-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--bg-dark);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .demo-step-content h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .demo-step-content p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Comparaison table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin: 16px 0;
+    }
+    thead th {
+      background: var(--bg-card2);
+      color: var(--accent-green);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td:first-child { color: var(--text-primary); font-weight: 600; }
+
+    /* Check & cross */
+    .check { color: var(--accent-green); font-weight: 700; }
+    .cross  { color: var(--accent-red);   font-weight: 700; }
+
+    /* Infrastructure diagram */
+    .infra-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+    .infra-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+      align-items: center;
+    }
+    .infra-node {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .infra-node .n-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+    .infra-node .n-label { color: var(--text-secondary); font-size: 10px; }
+    .infra-arrow {
+      color: var(--accent-green);
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .infra-line {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+      position: relative;
+    }
+    .infra-line::after {
+      content: attr(data-label);
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      padding: 0 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Footer bar */
+    .slide-footer {
+      position: absolute;
+      bottom: 24px;
+      left: 60px; right: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-light);
+      padding-top: 12px;
+    }
+
+    /* Timing badge */
+    .timing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(240,136,62,0.12);
+      border: 1px solid rgba(240,136,62,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-orange);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* Big stat */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Alert box */
+    .alert {
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin: 12px 0;
+      font-size: 13px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .alert-green  { background: rgba(63,185,80,0.1);  border: 1px solid rgba(63,185,80,0.3);  color: #a8f0b0; }
+    .alert-red    { background: rgba(248,81,73,0.1);  border: 1px solid rgba(248,81,73,0.3);  color: #f5a9a6; }
+    .alert-orange { background: rgba(240,136,62,0.1); border: 1px solid rgba(240,136,62,0.3); color: #f5cba2; }
+    .alert-blue   { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); color: #a8d0f0; }
+
+    /* ── PRINT RULES ── */
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { background: #0d1117; }
+      .cover, .toc-page, .slide { page-break-after: always; width: 100%; }
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     COVER PAGE
+═══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">Préparation à l'oral · Soutenance TP</div>
+  <h1>GitOps & ArgoCD</h1>
+  <div class="cover-subtitle">Déploiement Continu sur Kubernetes avec une approche Pull-based</div>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="label">Étudiant</div>
+      <div class="value">Mathis Lefebvre</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Classe</div>
+      <div class="value">5ESGI SRC</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Projet</div>
+      <div class="value">DevHub Campus</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Durée estimée</div>
+      <div class="value">15 min + 5 min démo</div>
+    </div>
+  </div>
+  <div class="cover-logo-row">
+    <div class="tech-pill"><span class="dot dot-green"></span>ArgoCD v3.4</div>
+    <div class="tech-pill"><span class="dot dot-blue"></span>Kubernetes / Kind</div>
+    <div class="tech-pill"><span class="dot dot-purple"></span>Helm & GitOps</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+═══════════════════════════════════════════════════════════ -->
+<div class="toc-page">
+  <div class="section-eyebrow">Plan de la présentation</div>
+  <div class="section-title">Sommaire <span>&amp; Structure</span></div>
+
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num">1</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 01</div>
+        <div class="toc-name">Contexte &amp; Objectifs du TP</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">2</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 02</div>
+        <div class="toc-name">Les Concepts Clés du GitOps</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">3</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 03</div>
+        <div class="toc-name">Architecture &amp; Infrastructure</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">4</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 04</div>
+        <div class="toc-name">Docker &amp; Helm — Standardisation</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">5</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 05</div>
+        <div class="toc-name">Bootstrap App of Apps</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">6</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 06</div>
+        <div class="toc-name">Environnements Éphémères (ApplicationSets)</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">7</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 07</div>
+        <div class="toc-name">Sécurité &amp; RBAC</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">8</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 08</div>
+        <div class="toc-name">Observabilité &amp; Alerting</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">9</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 09</div>
+        <div class="toc-name">Limites &amp; Risques en Production</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num">10</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Diapositive 10</div>
+        <div class="toc-name">Bilan &amp; Retours d'Expérience</div>
+      </div>
+    </div>
+  </div>
+
+  <br><br>
+  <div class="section-eyebrow" style="margin-top:20px;">Guide de démonstration live</div>
+  <div class="section-title">Démo <span>Interface ArgoCD</span></div>
+  <div class="toc-grid">
+    <div class="toc-item">
+      <div class="toc-num" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">A</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Démo — Phase 1</div>
+        <div class="toc-name">Préparation &amp; Lancement du Cluster</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">B</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Démo — Phase 2</div>
+        <div class="toc-name">Self-Healing en Direct</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">C</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Démo — Phase 3</div>
+        <div class="toc-name">Démonstration du RBAC</div>
+      </div>
+    </div>
+    <div class="toc-item">
+      <div class="toc-num" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">D</div>
+      <div class="toc-text">
+        <div class="toc-chapter">Démo — Phase 4</div>
+        <div class="toc-name">Preview Environments</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 1 — Contexte & Objectifs
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">1</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Introduction</div>
+      <div class="slide-title">Contexte &amp; Objectifs du TP</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="two-col" style="margin-bottom:18px;">
+      <div class="card accent-blue">
+        <h3>🎯 Objectif du TP</h3>
+        <p>Mettre en place une plateforme <strong>GitOps complète</strong> pour le projet <em>DevHub Campus</em> — un annuaire d'étudiants sur Kubernetes géré 100% depuis Git, sans intervention manuelle sur le cluster.</p>
+      </div>
+      <div class="card accent-green">
+        <h3>📦 Ce qui est déployé</h3>
+        <ul>
+          <li><strong>annuaire</strong> — Front Node.js (répertoire étudiant)</li>
+          <li><strong>planning</strong> — API Python (gestion des plannings)</li>
+          <li><strong>notif</strong> — Service Go (notifications push)</li>
+          <li><strong>ArgoCD</strong> — moteur GitOps (orchestrateur central)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">9+</div>
+        <div class="stat-label">Étapes réalisées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Services conteneurisés</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">100%</div>
+        <div class="stat-label">Géré par Git</div>
+      </div>
+    </div>
+
+    <div class="card accent-purple">
+      <h3>🛠️ Environnement technique</h3>
+      <p>
+        <span class="tag tag-blue">kubectl v1.34</span>&nbsp;
+        <span class="tag tag-blue">Helm v3.21</span>&nbsp;
+        <span class="tag tag-green">ArgoCD CLI v3.4</span>&nbsp;
+        <span class="tag tag-purple">Kind v0.24</span>&nbsp;
+        <span class="tag tag-orange">Docker Engine v27</span>
+      </p>
+      <br>
+      <p>Cluster Kind 2 nœuds (<em>control-plane + worker</em>), Ingress-NGINX exposant les services localement via le fichier <code>hosts</code> Windows.</p>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "Ce TP m'a permis de mettre en place une chaîne de déploiement continu complète basée sur ArgoCD.
+        L'idée centrale est simple : <em>tout ce qui tourne sur le cluster Kubernetes doit être décrit dans un dépôt Git et jamais modifié manuellement</em>.
+        On appelle ça le GitOps. Je vais vous présenter comment j'ai architecturé ça, ce que ça apporte concrètement en termes de sécurité et d'automatisation, et je vous ferai une démonstration live sur l'interface ArgoCD."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>1 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 2 — Les Concepts Clés du GitOps
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">2</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Fondamentaux</div>
+      <div class="slide-title">Les Concepts Clés du GitOps</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="card accent-red">
+        <h3>❌ Mode Push (CI classique)</h3>
+        <ul>
+          <li>Le runner CI (GitHub Actions) possède les clés admin du cluster</li>
+          <li>Risque majeur : si la CI est compromise → le cluster entier l'est aussi</li>
+          <li>Pas de détection des modifications manuelles</li>
+          <li>Pas de réconciliation automatique</li>
+        </ul>
+      </div>
+      <div class="card accent-green">
+        <h3>✅ Mode Pull (GitOps)</h3>
+        <ul>
+          <li>ArgoCD tourne <em>dans</em> le cluster et lit le dépôt Git</li>
+          <li>Aucune clé admin n'est exposée à l'extérieur</li>
+          <li>Toute modification hors Git est corrigée automatiquement</li>
+          <li>Git = seule source de vérité</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card accent-blue" style="margin-bottom:16px;">
+      <h3>📚 Glossaire fondamental</h3>
+      <div class="two-col">
+        <ul>
+          <li><strong>AppProject</strong> : barrières RBAC (quels dépôts, quels namespaces)</li>
+          <li><strong>Application</strong> : lien Git → Namespace K8s</li>
+          <li><strong>ApplicationSet</strong> : générateur automatique d'Applications</li>
+          <li><strong>Boucle de réconciliation</strong> : comparaison Git/Cluster en continu</li>
+        </ul>
+        <ul>
+          <li><strong>Self-Healing</strong> : correction automatique des modifications manuelles</li>
+          <li><strong>Pruning</strong> : suppression auto des ressources retirées de Git</li>
+          <li><strong>Drift</strong> : décalage entre Git et l'état réel du cluster</li>
+          <li><strong>Sync Wave</strong> : ordre de déploiement (DB avant API avant Front)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card accent-teal">
+      <h3>⚙️ Les 4 Piliers du GitOps</h3>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
+        <span class="tag tag-teal">① Déclaratif (YAML/Helm)</span>
+        <span class="tag tag-blue">② Git = Source de vérité</span>
+        <span class="tag tag-green">③ Application automatique</span>
+        <span class="tag tag-purple">④ Réconciliation continue</span>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "La différence fondamentale entre le GitOps et un pipeline CI classique, c'est le sens du flux.
+        En CI classique, votre pipeline va <em>pousser</em> des changements vers le cluster avec des droits admin.
+        Avec ArgoCD, on inverse : c'est l'agent qui <em>tire</em> depuis Git depuis l'intérieur du cluster.
+        Si quelqu'un fait un <code>kubectl edit</code> à la main, ArgoCD va détecter le drift et rétablir l'état Git dans les secondes qui suivent.
+        Je vais vous montrer ça en direct."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>2 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 3 — Architecture & Infrastructure
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">3</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Infrastructure</div>
+      <div class="slide-title">Architecture &amp; Infrastructure Locale</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="infra-box" style="margin-bottom:16px;">
+      <div class="infra-row">
+        <div class="infra-node">
+          <span class="n-icon">🌐</span>
+          Navigateur<br>
+          <span class="n-label">*.devhub.local</span>
+        </div>
+        <div class="infra-arrow">→</div>
+        <div class="infra-node">
+          <span class="n-icon">📋</span>
+          hosts Windows<br>
+          <span class="n-label">127.0.0.1 → *.devhub.local</span>
+        </div>
+        <div class="infra-arrow">→</div>
+        <div class="infra-node">
+          <span class="n-icon">⚡</span>
+          Ingress-NGINX<br>
+          <span class="n-label">NodePort 80/443</span>
+        </div>
+      </div>
+      <div class="infra-line" data-label="Cluster Kind: devhub (2 nœuds)"></div>
+      <div class="infra-row">
+        <div class="infra-node" style="border-color: rgba(63,185,80,0.4);">
+          <span class="n-icon">🔵</span>
+          control-plane<br>
+          <span class="n-label">ArgoCD + Ingress</span>
+        </div>
+        <div class="infra-node" style="border-color: rgba(88,166,255,0.4);">
+          <span class="n-icon">⚙️</span>
+          worker<br>
+          <span class="n-label">annuaire / planning / notif</span>
+        </div>
+        <div class="infra-node" style="border-color: rgba(188,140,255,0.4);">
+          <span class="n-icon">📦</span>
+          devhub-preview-*<br>
+          <span class="n-label">Namespaces éphémères</span>
+        </div>
+      </div>
+      <div class="infra-line" data-label="Pull (Watch)"></div>
+      <div class="infra-row">
+        <div class="infra-node" style="border-color: rgba(240,136,62,0.4);">
+          <span class="n-icon">📂</span>
+          Git Daemon local<br>
+          <span class="n-label">git://host.docker.internal:9000</span>
+        </div>
+        <div class="infra-arrow">→</div>
+        <div class="infra-node" style="border-color: rgba(240,136,62,0.4);">
+          <span class="n-icon">☁️</span>
+          GitHub Remote<br>
+          <span class="n-label">Mathis-Lefebvre/tp-argocd</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card accent-green">
+        <h3>🌍 Namespaces</h3>
+        <ul>
+          <li><code>argocd</code> — ArgoCD lui-même</li>
+          <li><code>devhub-dev</code> — Environnement de dev</li>
+          <li><code>devhub-preview-*</code> — Previews éphémères par branche</li>
+        </ul>
+      </div>
+      <div class="card accent-orange">
+        <h3>🔗 URLs locales</h3>
+        <ul>
+          <li><code>argocd.devhub.local</code> — Interface ArgoCD</li>
+          <li><code>annuaire.devhub.local</code> — Frontend</li>
+          <li><code>planning.devhub.local</code> — API</li>
+          <li><code>annuaire-feature-demo-prof.devhub.local</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "J'ai monté l'infrastructure en local avec Kind, qui crée un vrai cluster Kubernetes multi-nœuds dans Docker.
+        Le cluster expose ses services via Ingress-NGINX et j'ai configuré le fichier hosts Windows pour résoudre les domaines en local.
+        ArgoCD tire les manifestes Kubernetes depuis un serveur Git local — ce qui reproduit exactement le comportement d'un environnement de production.
+        La source de vérité est le dépôt GitHub <em>Mathis-Lefebvre/tp-argocd</em>."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>3 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 4 — Docker & Helm
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">4</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Standardisation</div>
+      <div class="slide-title">Docker &amp; Helm — Conteneurisation &amp; Packaging</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="three-col" style="margin-bottom:16px;">
+      <div class="card accent-teal">
+        <h3>📦 annuaire</h3>
+        <p><span class="tag tag-teal">Node.js 20</span></p>
+        <br>
+        <ul>
+          <li>Multi-stage build</li>
+          <li>Image runtime <code>node:20-alpine</code></li>
+          <li>Taille : ~130 Mo</li>
+          <li>Utilisateur <code>node</code> (non-root)</li>
+          <li>Port <code>8080</code></li>
+        </ul>
+      </div>
+      <div class="card accent-blue">
+        <h3>🐍 planning</h3>
+        <p><span class="tag tag-blue">Python 3.12</span></p>
+        <br>
+        <ul>
+          <li>Multi-stage build + venv</li>
+          <li>Image <code>python:3.12-slim</code></li>
+          <li>Taille : ~155 Mo</li>
+          <li>Utilisateur <code>appuser</code> (non-root)</li>
+          <li>Port <code>8080</code></li>
+        </ul>
+      </div>
+      <div class="card accent-purple">
+        <h3>⚡ notif</h3>
+        <p><span class="tag tag-purple">Go statique</span></p>
+        <br>
+        <ul>
+          <li>Multi-stage build Go</li>
+          <li>Image <code>distroless/static</code></li>
+          <li>Taille : ~22 Mo <span class="tag tag-green">★ Minimal</span></li>
+          <li>Utilisateur <code>nonroot</code></li>
+          <li>Pas de shell disponible</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card accent-green" style="margin-bottom:16px;">
+      <h3>🔒 Durcissement Helm / Kubernetes (SecurityContext)</h3>
+      <div class="two-col">
+        <ul>
+          <li><code>runAsNonRoot: true</code></li>
+          <li><code>allowPrivilegeEscalation: false</code></li>
+          <li><code>readOnlyRootFilesystem: true</code></li>
+        </ul>
+        <ul>
+          <li><code>livenessProbe</code> &amp; <code>readinessProbe</code> sur <code>/healthz</code></li>
+          <li>Requests &amp; Limits CPU/Mémoire définies</li>
+          <li>Labels OCI standards dans les helpers</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "Avant de parler d'ArgoCD, j'ai travaillé sur la qualité de ce qu'on déploie.
+        Les trois services sont conteneurisés avec des Dockerfiles multi-stages : on sépare la phase de build de l'image de production.
+        Résultat : le service de notification en Go pèse seulement 22 Mo parce qu'il utilise une image distroless, sans shell ni OS.
+        Niveau sécurité Kubernetes, j'ai appliqué le principe du moindre privilège sur tous les conteneurs — ils tournent en utilisateur non-root, avec un système de fichiers en lecture seule."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>4 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 5 — App of Apps
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">5</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Bootstrap de la Plateforme</div>
+      <div class="slide-title">Pattern App of Apps &amp; Root Application</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1.5 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="card accent-purple" style="margin-bottom:16px;">
+      <h3>🌳 Pourquoi App of Apps ?</h3>
+      <div class="two-col">
+        <div>
+          <p><strong>Sans App of Apps</strong> (<code>kubectl apply -f</code>)</p>
+          <ul style="margin-top:8px;">
+            <li class="cross">✗ Ne supprime rien si on retire un fichier YAML</li>
+            <li class="cross">✗ N'empêche pas les modifications manuelles</li>
+            <li class="cross">✗ Pas de visibilité centralisée</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>Avec App of Apps + ArgoCD</strong></p>
+          <ul style="margin-top:8px;">
+            <li class="check">✓ Pruning auto (suppression si retiré de Git)</li>
+            <li class="check">✓ Self-healing (correction des drifts)</li>
+            <li class="check">✓ Arbre de dépendances dans l'UI ArgoCD</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card accent-orange" style="margin-bottom:16px;">
+      <h3>🗂️ Structure du dépôt (vue logique)</h3>
+      <div class="code-block" style="margin-top:10px;">
+        <div class="cb-header">📁 Arborescence devhub-campus/</div>
+        <pre>
+platform/
+├── bootstrap/
+│   └── <span class="keyword">root-app.yaml</span>       <span class="comment"># 👑 Application racine (bootstrapper)</span>
+├── apps/
+│   ├── dev/              <span class="comment"># Applications ArgoCD par environnement</span>
+│   │   ├── annuaire-dev.yaml
+│   │   ├── planning-dev.yaml
+│   │   └── notif-dev.yaml
+│   └── sets/
+│       └── <span class="keyword">preview-appset.yaml</span>  <span class="comment"># 🔀 ApplicationSet previews</span>
+├── projects/
+│   └── devhub.yaml       <span class="comment"># AppProject (périmètre RBAC)</span>
+└── argocd/
+    └── values.yaml       <span class="comment"># Config ArgoCD (RBAC, notifs...)</span>
+
+services/
+├── annuaire/             <span class="comment"># Chart Helm + Dockerfile</span>
+├── planning/
+└── notif/</pre>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "J'ai utilisé le pattern App of Apps pour bootstrap toute la plateforme avec une seule commande.
+        On a une application racine dans ArgoCD qui surveille le dossier <code>platform/apps/</code> dans Git.
+        Dès qu'on ajoute un fichier YAML d'Application à ce dossier et qu'on commit, ArgoCD le détecte et crée automatiquement la ressource sur le cluster.
+        De même, si on supprime ce fichier, l'application et toutes ses ressources Kubernetes sont pruned — proprement supprimées."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>5 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 6 — Environnements Éphémères
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">6</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Environnements Éphémères</div>
+      <div class="slide-title">ApplicationSets &amp; Preview Environments</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="card accent-teal" style="margin-bottom:16px;">
+      <h3>🔄 Flux de création automatique</h3>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <span class="tag tag-blue">① Push branche <code>feature-X</code></span>
+        <span style="color:var(--text-muted)">→</span>
+        <span class="tag tag-teal">② ApplicationSet détecte la branche</span>
+        <span style="color:var(--text-muted)">→</span>
+        <span class="tag tag-green">③ Namespace créé: <code>devhub-preview-feature-X</code></span>
+        <span style="color:var(--text-muted)">→</span>
+        <span class="tag tag-purple">④ Ingress unique: <code>annuaire-feature-X.devhub.local</code></span>
+        <span style="color:var(--text-muted)">→</span>
+        <span class="tag tag-orange">⑤ Suppression branche → Pruning auto</span>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="card accent-blue">
+        <h3>📋 Générateur List (maquette locale)</h3>
+        <p>Pour simuler le comportement sans token GitHub API, on utilise un <em>List Generator</em> avec la branche <code>feature-demo-prof</code> hardcodée. En production, on utiliserait le <em>Pull Request Generator</em> pour un déclenchement automatique sur ouverture de PR.</p>
+      </div>
+      <div class="card accent-green">
+        <h3>✨ Variables de template</h3>
+        <ul>
+          <li><code>{{`{{branch}}`}}</code> → <code>feature-demo-prof</code></li>
+          <li><code>{{`{{branch_slug}}`}}</code> → <code>feature-demo-prof</code></li>
+          <li>Namespace: <code>devhub-preview-{{`{{branch_slug}}`}}</code></li>
+          <li>Host: <code>annuaire-{{`{{branch_slug}}`}}.devhub.local</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert alert-orange">
+      <div class="alert-icon">💡</div>
+      <div><strong>Avantage majeur</strong> : chaque développeur dispose de son propre environnement de test isolé, créé en quelques secondes depuis un simple push de branche. Plus besoin de se disputer un environnement de staging partagé.</div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "Les ApplicationSets permettent de générer des Applications ArgoCD dynamiquement.
+        Dans mon cas, j'ai créé un ApplicationSet qui surveille une liste de branches.
+        Quand une nouvelle branche apparaît, ArgoCD crée automatiquement un namespace isolé, déploie l'annuaire dedans, et configure un Ingress avec un nom de domaine unique pour cette branche.
+        Quand la branche est supprimée, tout est nettoyé automatiquement — c'est le pruning.
+        En production, ce générateur se connecte directement à l'API GitHub pour réagir aux Pull Requests."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>6 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 7 — Sécurité & RBAC
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">7</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Sécurité &amp; Gouvernance</div>
+      <div class="slide-title">RBAC, AppProject &amp; Isolation Multi-tenant</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="card accent-green">
+        <h3>👤 Compte admin</h3>
+        <ul>
+          <li>Login: <code>admin</code></li>
+          <li>Accès complet à toutes les applications</li>
+          <li>Peut modifier les projets et la config ArgoCD</li>
+          <li>Rôle: <code>role:admin</code></li>
+        </ul>
+      </div>
+      <div class="card accent-orange">
+        <h3>👨‍💻 Compte developer (restreint)</h3>
+        <ul>
+          <li>Login: <code>developer</code></li>
+          <li>Lecture seule sur toutes les apps</li>
+          <li>Sync autorisé <em>uniquement</em> sur <code>annuaire-*</code></li>
+          <li><span class="tag tag-red">Bloqué</span> sur <code>planning-dev</code> et <code>notif-dev</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card accent-blue" style="margin-bottom:16px;">
+      <h3>📋 Règles RBAC configurées (argocd/values.yaml)</h3>
+      <div class="code-block" style="margin-top:10px;">
+        <div class="cb-header">🔐 Politique RBAC Casbin</div>
+        <pre>
+<span class="comment"># Droits du groupe developer</span>
+p, role:developer, applications, get,    devhub/*, allow
+p, role:developer, applications, sync,   devhub/annuaire-*, allow
+p, role:developer, applications, sync,   devhub/planning-*, deny
+p, role:developer, applications, sync,   devhub/notif-*, deny
+
+<span class="comment"># Résultats validés en CLI</span>
+<span class="keyword">argocd app sync annuaire-dev</span>  <span class="value">→ OK ✅</span>
+<span class="keyword">argocd app sync planning-dev</span>  <span class="value">→ permission denied ❌</span></pre>
+      </div>
+    </div>
+
+    <div class="card accent-purple">
+      <h3>🛡️ AppProject devhub</h3>
+      <ul>
+        <li><strong>Sources autorisées</strong> : uniquement <code>git://host.docker.internal:9000/</code></li>
+        <li><strong>Destinations autorisées</strong> : cluster local + namespaces <code>devhub-*</code></li>
+        <li><strong>Ressources bloquées</strong> : <code>Namespace</code> (création non autorisée)</li>
+      </ul>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "J'ai configuré deux niveaux de contrôle d'accès.
+        D'abord l'AppProject qui définit le périmètre : quels dépôts Git sont autorisés, sur quels namespaces peut-on déployer.
+        Ensuite le RBAC : j'ai créé un compte <em>developer</em> qui peut voir toutes les apps mais ne peut synchroniser que l'annuaire.
+        Si le développeur essaie de syncer le service planning, ArgoCD lui retourne un <em>permission denied</em>.
+        Je vous montrerai ça en démo."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>7 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 8 — Observabilité
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">8</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Observabilité</div>
+      <div class="slide-title">Métriques Prometheus &amp; Alertes Webhook</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1.5 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="three-col" style="margin-bottom:16px;">
+      <div class="card accent-green">
+        <h3>📊 argocd_app_info</h3>
+        <p>Suivi en temps réel de l'état de santé (<em>Healthy/Degraded</em>) et de synchronisation de chaque application. Permet les dashboards Grafana.</p>
+      </div>
+      <div class="card accent-blue">
+        <h3>⏱ argocd_app_reconcile_duration_seconds</h3>
+        <p>Mesure le temps de réconciliation Git↔Cluster. Permet de détecter les surcharges du contrôleur.</p>
+      </div>
+      <div class="card accent-orange">
+        <h3>🔄 argocd_app_sync_total</h3>
+        <p>Comptage des synchronisations. Permet de détecter les boucles de sync infinies (signe de problème de configuration).</p>
+      </div>
+    </div>
+
+    <div class="card accent-purple" style="margin-bottom:16px;">
+      <h3>🔔 Notifications Webhook configurées</h3>
+      <p>Le module de notifications natif ArgoCD est activé. En cas d'échec de synchronisation (<code>on-sync-failed</code>), un JSON est envoyé vers <strong>webhook.site</strong> contenant :</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <span class="tag tag-green">Nom de l'application</span>
+        <span class="tag tag-blue">Commit cible (SHA)</span>
+        <span class="tag tag-orange">Détail de l'erreur K8s</span>
+        <span class="tag tag-purple">Timestamp</span>
+      </div>
+    </div>
+
+    <div class="alert alert-blue">
+      <div class="alert-icon">📡</div>
+      <div>En production, ce webhook serait connecté à <strong>Slack, PagerDuty ou Teams</strong> pour alerter l'équipe d'astreinte immédiatement, sans nécessiter de polling manuel de l'interface.</div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "ArgoCD expose nativement des métriques Prometheus. J'ai identifié les trois métriques clés pour une supervision en production.
+        J'ai aussi configuré le système de notifications intégré : dès qu'un déploiement échoue, un webhook est envoyé automatiquement.
+        En entreprise, on brancherait ça directement sur Slack ou PagerDuty pour que l'équipe d'astreinte soit alertée sans avoir à surveiller manuellement l'UI."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>8 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 9 — Limites & Risques
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">9</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Analyse Critique</div>
+      <div class="slide-title">Limites d'ArgoCD &amp; Risques en Production</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="card accent-red" style="margin-bottom:16px;">
+      <h3>⚠️ Ce qu'ArgoCD ne gère pas nativement</h3>
+      <div class="two-col">
+        <ul>
+          <li><strong>Déploiements canary / blue-green</strong> → nécessite Argo Rollouts ou Flagger</li>
+          <li><strong>Gestion des secrets Git</strong> → il ne faut jamais stocker des mots de passe en clair dans Git</li>
+        </ul>
+        <ul>
+          <li><strong>Policy-as-Code</strong> → Kyverno ou OPA Gatekeeper pour bloquer les déploiements non-conformes</li>
+          <li><strong>Tests de smoke post-déploiement</strong> → nécessite un pipeline CI complémentaire</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="three-col" style="margin-bottom:14px;">
+      <div class="card accent-red">
+        <h3>🔐 Risque #1 : Secrets dans Git</h3>
+        <p>Ne jamais stocker de mots de passe en clair.</p>
+        <br>
+        <p><strong>Solution :</strong> <span class="tag tag-green">Sealed Secrets</span> ou <span class="tag tag-blue">External Secrets Operator</span> + HashiCorp Vault</p>
+      </div>
+      <div class="card accent-orange">
+        <h3>🔓 Risque #2 : Accès Git = Accès Cluster</h3>
+        <p>Si le dépôt est compromis, le cluster l'est aussi.</p>
+        <br>
+        <p><strong>Solution :</strong> <span class="tag tag-orange">Branch Protection</span> + revues obligatoires + signature des commits (GPG)</p>
+      </div>
+      <div class="card accent-purple">
+        <h3>👑 Risque #3 : Privilèges ArgoCD</h3>
+        <p>Le contrôleur peut avoir des droits <code>cluster-admin</code>.</p>
+        <br>
+        <p><strong>Solution :</strong> Restreindre via <span class="tag tag-purple">AppProject</span> + RBAC granulaire</p>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral</div>
+      <p>
+        "ArgoCD est très puissant, mais il faut avoir conscience de ses limites.
+        Le fait que Git soit la source de vérité signifie que si quelqu'un pousse du code malveillant sur votre branche principale, il contrôle votre cluster.
+        D'où l'importance des branch protections et des revues de code.
+        Concernant les secrets, on ne les stocke jamais en clair dans Git — on utilise des outils comme Sealed Secrets ou External Secrets Operator.
+        Et pour les déploiements progressifs, ArgoCD seul ne suffit pas : il faut coupler ça avec Argo Rollouts."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>9 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 10 — Bilan & Comparatif
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number">10</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Bilan &amp; Conclusion</div>
+      <div class="slide-title">Retours d'Expérience &amp; Comparatif Outils</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1.5 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <table style="margin-bottom:16px;">
+      <thead>
+        <tr>
+          <th>Critère</th>
+          <th>Flux v2 (CNCF)</th>
+          <th>ArgoCD</th>
+          <th>Helm Direct (push)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Modèle</td>
+          <td><span class="tag tag-green">Pull</span></td>
+          <td><span class="tag tag-green">Pull</span></td>
+          <td><span class="tag tag-red">Push</span></td>
+        </tr>
+        <tr>
+          <td>Interface Graphique</td>
+          <td><span class="cross">✗ Non (extensions tierces)</span></td>
+          <td><span class="check">✓ UI native riche</span></td>
+          <td><span class="cross">✗ Non</span></td>
+        </tr>
+        <tr>
+          <td>Gestion du Drift</td>
+          <td><span class="check">✓ Auto-correction</span></td>
+          <td><span class="check">✓ Auto-correction</span></td>
+          <td><span class="cross">✗ Non gérée</span></td>
+        </tr>
+        <tr>
+          <td>Multi-tenancy / RBAC</td>
+          <td>Basé sur RBAC K8s</td>
+          <td><span class="check">RBAC interne propre</span></td>
+          <td>RBAC du compte CI</td>
+        </tr>
+        <tr>
+          <td>Environnements éphémères</td>
+          <td>Kustomize + ImagePolicy</td>
+          <td><span class="check">ApplicationSets natif</span></td>
+          <td><span class="cross">✗ Manuel</span></td>
+        </tr>
+        <tr>
+          <td>Courbe d'apprentissage</td>
+          <td>Moyenne</td>
+          <td>Faible (UI claire)</td>
+          <td>Très faible</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card accent-green" style="margin-bottom:0;">
+      <h3>✅ Ce que ce TP m'a apporté</h3>
+      <div class="two-col">
+        <ul>
+          <li>Maîtrise du modèle GitOps et de ses avantages vs CI classique</li>
+          <li>Compréhension des concepts ArgoCD (App of Apps, ApplicationSets, RBAC)</li>
+          <li>Pratique de la sécurité conteneur (non-root, distroless, securityContext)</li>
+        </ul>
+        <ul>
+          <li>Gestion des environnements éphémères par branche</li>
+          <li>Configuration de l'observabilité (métriques, notifications)</li>
+          <li>Analyse critique des limites et risques en production</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="oral-script">
+      <div class="oral-script-header">Script Oral — Conclusion</div>
+      <p>
+        "En conclusion, ArgoCD se démarque vraiment de Flux v2 par son interface graphique très riche qui facilite la prise en main et le débogage.
+        Les ApplicationSets pour les environnements éphémères et le RBAC granulaire en font un choix solide pour une équipe avec plusieurs développeurs.
+        Ce TP m'a permis de passer de la théorie du GitOps à une plateforme fonctionnelle en local, avec tous les concepts fondamentaux mis en pratique.
+        Je suis maintenant prêt pour la démonstration live."
+      </p>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — TP DevHub Campus</span>
+    <span>10 / 10</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DEMO GUIDE — COVER
+═══════════════════════════════════════════════════════════ -->
+<div class="cover" style="background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 40%, #0f1a2e 100%);">
+  <div class="cover-badge" style="color:var(--accent-orange); background:rgba(240,136,62,0.15); border-color:rgba(240,136,62,0.4);">Guide de Démonstration Live</div>
+  <h1 style="background: linear-gradient(135deg, #f0883e, #bc8cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">Démo ArgoCD UI</h1>
+  <div class="cover-subtitle">Script pas-à-pas pour la démonstration en direct · ~5 minutes</div>
+  <div class="cover-divider" style="background: linear-gradient(135deg, #f0883e, #bc8cff);"></div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="label">Phase A</div>
+      <div class="value">Préparation cluster</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Phase B</div>
+      <div class="value">Self-Healing</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Phase C</div>
+      <div class="value">RBAC developer</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Phase D</div>
+      <div class="value">Preview Environments</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DEMO PHASE A — Préparation & Vérification
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">A</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Démo — Phase A</div>
+      <div class="slide-title">Préparation &amp; Vérification du Cluster</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="alert alert-blue" style="margin-bottom:16px;">
+      <div class="alert-icon">⚠️</div>
+      <div><strong>À faire AVANT la présentation</strong> : Démarrer le cluster Kind et le serveur Git local. Ouvrir le navigateur sur <code>http://argocd.devhub.local</code>.</div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">1</div>
+      <div class="demo-step-content">
+        <h4>Vérifier que le cluster Kind tourne</h4>
+        <div class="code-block">
+          <pre><span class="keyword">kubectl get nodes</span>
+<span class="comment"># Attendu :</span>
+<span class="value">NAME                    STATUS   ROLES           AGE   VERSION
+devhub-control-plane    Ready    control-plane   Xh    v1.29.x
+devhub-worker           Ready    &lt;none&gt;          Xh    v1.29.x</span></pre>
+        </div>
+        <p>Si le cluster est arrêté : <code>make cluster-up</code> (⚠️ cela prend ~3 min)</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">2</div>
+      <div class="demo-step-content">
+        <h4>Démarrer le serveur Git local</h4>
+        <div class="code-block">
+          <pre><span class="comment"># Depuis le dossier devhub-campus</span>
+<span class="keyword">git daemon</span> <span class="string">--base-path=. --export-all --enable=receive-pack --reuseaddr --port=9000 --verbose &amp;</span>
+<span class="comment"># Laisser le terminal ouvert ou envoyer en background</span></pre>
+        </div>
+        <p>Ce daemon Git permet à ArgoCD (qui tourne dans le cluster) d'accéder au dépôt local.</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">3</div>
+      <div class="demo-step-content">
+        <h4>Vérifier l'état de tous les pods ArgoCD</h4>
+        <div class="code-block">
+          <pre><span class="keyword">kubectl get pods -n argocd</span>
+<span class="comment"># Tous les pods doivent être Running (argocd-server, argocd-application-controller...)</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">4</div>
+      <div class="demo-step-content">
+        <h4>Ouvrir l'interface ArgoCD</h4>
+        <p>Navigateur → <code>http://argocd.devhub.local</code></p>
+        <p>Login : <code>admin</code> / Mot de passe : <code>DevHubPassword123!</code></p>
+        <p style="margin-top:6px;">🎯 <strong>À montrer</strong> : L'arbre des applications (root → annuaire-dev, planning-dev, notif-dev, preview-appset)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>Guide Démo — Phase A</span>
+    <span>Démo 1/4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DEMO PHASE B — Self-Healing
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">B</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Démo — Phase B</div>
+      <div class="slide-title">Démonstration du Self-Healing en Direct</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~2 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="alert alert-green" style="margin-bottom:16px;">
+      <div class="alert-icon">🎯</div>
+      <div><strong>Objectif pédagogique</strong> : Montrer qu'ArgoCD corrige automatiquement toute modification manuelle sur le cluster, en moins de 3 secondes.</div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">1</div>
+      <div class="demo-step-content">
+        <h4>Montrer l'état actuel dans l'UI</h4>
+        <p>Dans ArgoCD UI : <em>Applications → annuaire-dev</em></p>
+        <p>Montrer que l'app est <span class="tag tag-green">Synced ✓</span> et <span class="tag tag-green">Healthy ✓</span></p>
+        <p>Montrer le déploiement avec <strong>1 réplica</strong></p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">2</div>
+      <div class="demo-step-content">
+        <h4>Modifier manuellement le cluster (créer le drift)</h4>
+        <div class="code-block">
+          <pre><span class="comment"># Dans un terminal — scaler à 3 réplicas "à la main"</span>
+<span class="keyword">kubectl scale deployment annuaire -n devhub-dev --replicas=3</span></pre>
+        </div>
+        <p><strong>Dire à l'oral</strong> : "Je viens de modifier le cluster directement, sans passer par Git. C'est ce qu'on appelle un drift."</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">3</div>
+      <div class="demo-step-content">
+        <h4>Observer le retour à la normale dans l'UI</h4>
+        <p>Retourner dans ArgoCD UI (rafraîchir si besoin)</p>
+        <p>L'app passe brièvement à <span class="tag tag-orange">OutOfSync</span> puis ArgoCD la resynchronise automatiquement → retour à <span class="tag tag-green">Synced</span></p>
+        <div class="code-block">
+          <pre><span class="comment"># Vérification en CLI (pendant que l'UI affiche)</span>
+<span class="keyword">kubectl get pods -n devhub-dev</span>
+<span class="comment"># Les 3 pods apparaissent puis 2 sont terminés → retour à 1 seul</span></pre>
+        </div>
+        <p><strong>Dire à l'oral</strong> : "ArgoCD a détecté le drift en quelques secondes et a rétabli l'état défini dans Git. Le cluster est self-healing."</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">4</div>
+      <div class="demo-step-content">
+        <h4>(Optionnel) Montrer le Pruning</h4>
+        <p>Dans l'UI, montrer l'historique des syncs d'<em>annuaire-dev</em> pour voir l'event de self-healing.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>Guide Démo — Phase B · Self-Healing</span>
+    <span>Démo 2/4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DEMO PHASE C — RBAC developer
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">C</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Démo — Phase C</div>
+      <div class="slide-title">Démonstration du RBAC — Compte developer</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1.5 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="alert alert-blue" style="margin-bottom:16px;">
+      <div class="alert-icon">🎯</div>
+      <div><strong>Objectif pédagogique</strong> : Montrer que les droits ArgoCD sont granulaires — un développeur peut syncer son service sans pouvoir toucher aux autres.</div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">1</div>
+      <div class="demo-step-content">
+        <h4>Se déconnecter de admin dans l'UI</h4>
+        <p>ArgoCD UI → clic sur l'icône utilisateur en haut à droite → <em>Log out</em></p>
+        <p>Puis se connecter avec : <code>developer</code> / <code>developerpassword</code></p>
+        <p>🎯 <strong>Montrer</strong> : On peut voir toutes les apps, mais les boutons de configuration sont désactivés</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">2</div>
+      <div class="demo-step-content">
+        <h4>Démontrer en CLI : sync autorisé sur annuaire</h4>
+        <div class="code-block">
+          <pre><span class="comment"># Login CLI avec le compte developer</span>
+<span class="keyword">argocd login</span> argocd.devhub.local <span class="string">--insecure --username developer --password developerpassword</span>
+
+<span class="comment"># Test 1 : Sync autorisé → doit fonctionner</span>
+<span class="keyword">argocd app sync annuaire-dev</span>
+<span class="value">→ Attendu : "annuaire-dev" synced successfully ✅</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">3</div>
+      <div class="demo-step-content">
+        <h4>Démontrer en CLI : sync bloqué sur planning</h4>
+        <div class="code-block">
+          <pre><span class="comment"># Test 2 : Sync bloqué → doit retourner une erreur</span>
+<span class="keyword">argocd app sync planning-dev</span>
+<span class="value">→ Attendu : FATA[0000] rpc error: code = PermissionDenied ❌</span>
+<span class="comment"># ArgoCD refuse car le compte developer n'a pas le droit de syncer planning-dev</span></pre>
+        </div>
+        <p><strong>Dire à l'oral</strong> : "Le RBAC d'ArgoCD fonctionne de manière très granulaire, au niveau de chaque application. Un développeur frontend ne peut toucher qu'à son service, pas aux autres."</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">4</div>
+      <div class="demo-step-content">
+        <h4>Revenir sur le compte admin</h4>
+        <div class="code-block">
+          <pre><span class="keyword">argocd login</span> argocd.devhub.local <span class="string">--insecure --username admin --password DevHubPassword123!</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>Guide Démo — Phase C · RBAC</span>
+    <span>Démo 3/4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DEMO PHASE D — Preview Environments
+═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-number" style="background: linear-gradient(135deg, #f0883e, #bc8cff);">D</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Démo — Phase D</div>
+      <div class="slide-title">Environnements de Preview Éphémères</div>
+    </div>
+    <div style="margin-left:auto;"><span class="timing-badge">⏱ ~1.5 min</span></div>
+  </div>
+
+  <div class="slide-body">
+    <div class="alert alert-orange" style="margin-bottom:16px;">
+      <div class="alert-icon">💡</div>
+      <div><strong>Prérequis</strong> : La branche <code>feature-demo-prof</code> existe déjà en local. L'ApplicationSet est déjà configuré. Il suffit de vérifier que l'app preview est active et montrer l'URL unique.</div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">1</div>
+      <div class="demo-step-content">
+        <h4>Montrer l'ApplicationSet dans l'UI ArgoCD</h4>
+        <p>Dans ArgoCD UI : <em>Applications → annuaire-preview-feature-demo-prof</em></p>
+        <p>Montrer que c'est une application générée par l'ApplicationSet</p>
+        <p>🎯 Montrer le namespace <code>devhub-preview-feature-demo-prof</code> et l'Ingress unique</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">2</div>
+      <div class="demo-step-content">
+        <h4>Vérifier que l'application preview est accessible</h4>
+        <div class="code-block">
+          <pre><span class="comment"># Vérifier que les pods sont running dans le namespace preview</span>
+<span class="keyword">kubectl get pods -n devhub-preview-feature-demo-prof</span>
+
+<span class="comment"># Vérifier l'Ingress</span>
+<span class="keyword">kubectl get ingress -n devhub-preview-feature-demo-prof</span>
+<span class="value">→ Attendu : annuaire-feature-demo-prof.devhub.local</span></pre>
+        </div>
+        <p>Ouvrir dans le navigateur : <code>http://annuaire-feature-demo-prof.devhub.local</code></p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">3</div>
+      <div class="demo-step-content">
+        <h4>Expliquer la création/suppression automatique</h4>
+        <p><strong>Dire à l'oral</strong> : "Cette application preview a été créée automatiquement par l'ApplicationSet quand la branche <code>feature-demo-prof</code> a été ajoutée à la liste. Si je retire cette branche de la liste et que je commit, ArgoCD va supprimer automatiquement le namespace et toutes ses ressources — c'est le pruning. En production, ça se déclenche à l'ouverture et la fermeture des Pull Requests GitHub."</p>
+      </div>
+    </div>
+
+    <div class="demo-step">
+      <div class="demo-step-num">4</div>
+      <div class="demo-step-content">
+        <h4>Synthèse finale</h4>
+        <p>Revenir sur la vue principale d'ArgoCD et montrer l'ensemble des applications : <code>root</code> → <code>annuaire-dev</code>, <code>planning-dev</code>, <code>notif-dev</code>, <code>annuaire-preview-feature-demo-prof</code></p>
+        <p><strong>Dire à l'oral</strong> : "Tout ce que vous voyez ici est piloté uniquement par des commits dans un dépôt Git. Aucune commande kubectl n'a été utilisée pour créer ou modifier ces ressources en dehors du bootstrap initial. C'est ça, le GitOps."</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>Guide Démo — Phase D · Preview Environments</span>
+    <span>Démo 4/4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CHEAT SHEET — Commandes rapides
+═══════════════════════════════════════════════════════════ -->
+<div class="slide" style="min-height:auto; padding-bottom:80px;">
+  <div class="slide-header">
+    <div class="slide-number" style="background: linear-gradient(135deg, #39d3bb, #58a6ff);">⚡</div>
+    <div class="slide-header-text">
+      <div class="slide-chapter">Référence Rapide</div>
+      <div class="slide-title">Cheat Sheet — Commandes Essentielles</div>
+    </div>
+  </div>
+
+  <div class="slide-body">
+    <div class="two-col">
+      <div>
+        <div class="code-block">
+          <div class="cb-header">🔧 Cluster & Infrastructure</div>
+          <pre><span class="comment"># Démarrer le cluster</span>
+<span class="keyword">make cluster-up</span>
+
+<span class="comment"># Vérifier les nœuds</span>
+<span class="keyword">kubectl get nodes</span>
+
+<span class="comment"># Démarrer le daemon Git local</span>
+<span class="keyword">git daemon</span> <span class="string">--base-path=. \
+  --export-all --enable=receive-pack \
+  --reuseaddr --port=9000 --verbose &amp;</span>
+
+<span class="comment"># Vérifier les pods ArgoCD</span>
+<span class="keyword">kubectl get pods -n argocd</span></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-header">🔐 Credentials</div>
+          <pre><span class="comment"># Admin</span>
+<span class="value">URL:  http://argocd.devhub.local
+User: admin
+Pass: DevHubPassword123!</span>
+
+<span class="comment"># Developer (restreint)</span>
+<span class="value">User: developer
+Pass: developerpassword</span></pre>
+        </div>
+      </div>
+
+      <div>
+        <div class="code-block">
+          <div class="cb-header">🚀 Commandes ArgoCD CLI</div>
+          <pre><span class="comment"># Login admin</span>
+<span class="keyword">argocd login</span> argocd.devhub.local <span class="string">\
+  --insecure --username admin \
+  --password DevHubPassword123!</span>
+
+<span class="comment"># Login developer</span>
+<span class="keyword">argocd login</span> argocd.devhub.local <span class="string">\
+  --insecure --username developer \
+  --password developerpassword</span>
+
+<span class="comment"># Lister les apps</span>
+<span class="keyword">argocd app list</span>
+
+<span class="comment"># Sync app</span>
+<span class="keyword">argocd app sync annuaire-dev</span>
+<span class="keyword">argocd app sync planning-dev</span>  <span class="comment"># → PermissionDenied (developer)</span>
+
+<span class="comment"># Forcer le refresh</span>
+<span class="keyword">argocd app get annuaire-dev --refresh</span></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-header">🌐 URLs Locales</div>
+          <pre><span class="value">http://argocd.devhub.local        ← ArgoCD UI
+http://annuaire.devhub.local      ← Annuaire dev
+http://planning.devhub.local      ← Planning API
+http://annuaire-feature-demo-prof.devhub.local
+                                  ← Preview branch</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-footer">
+    <span>Mathis Lefebvre — 5ESGI SRC</span>
+    <span>GitOps &amp; ArgoCD — Cheat Sheet</span>
+    <span>Référence</span>
+  </div>
+</div>
+
+</body>
+</html>
