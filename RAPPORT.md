@@ -1,6 +1,6 @@
 # Compte-rendu de TP — GitOps & ArgoCD (DevHub Campus)
 **5ESGI SRC**  
-**Étudiant :** Mathis Lefebvre
+**Étudiants :** Mathis Lefebvre & Evan Lefebvre
 
 ---
 
