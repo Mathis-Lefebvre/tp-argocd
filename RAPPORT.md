@@ -170,3 +170,20 @@ argocd login argocd.devhub.local --insecure --username developer --password deve
 argocd app sync annuaire-dev    # OK
 argocd app sync planning-dev    # Bloqué (Permission Denied)
 ```
+
+---
+
+## 11. Validation visuelle et résultats (Captures d'écran)
+
+Voici les résultats visuels attestant du bon fonctionnement de notre infrastructure et de sa chaîne d'intégration continue :
+
+### A. Vue d'ensemble de l'interface ArgoCD
+Toutes les applications définies dans notre mono-repo (modèle App of Apps) sont synchronisées avec succès (`Synced`) et dans un état sain (`Healthy`) :
+
+![Tableau de bord ArgoCD](docs/images/argocd-health.png)
+
+### B. Automatisation de l'infrastructure via GitHub Actions
+Le déploiement complet de l'infrastructure locale (Kind + ArgoCD + Ingress + Bootstrap App of Apps) a été réalisé avec succès en un clic depuis GitHub Actions via notre runner local :
+
+![Pipeline de déploiement GitHub Actions réussie](docs/images/github-actions.png)
+
