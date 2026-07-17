@@ -199,9 +199,20 @@ Le workflow exécute dans l'ordre :
 |---|---|
 | URL | http://argocd.devhub.local |
 | Login admin | `admin` |
-| Mot de passe admin | `DevHubPassword123!` |
+| Mot de passe admin | *Généré aléatoirement* (voir ci-dessous) |
 | Login developer | `developer` |
 | Mot de passe developer | `developerpassword` |
+
+#### 🔑 Comment récupérer le mot de passe de l'admin ?
+
+Le mot de passe change à chaque fois que tu recrées le cluster. Pour l'obtenir :
+
+* **Méthode 1 (Ligne de commande WSL) :**
+  ```bash
+  make argocd-password
+  ```
+* **Méthode 2 (Sans commande) :**
+  Va sur GitHub Actions, clique sur ton dernier déploiement vert, déroule le job **Bootstrap App of Apps** puis l'étape **Résumé final** : le mot de passe est affiché en clair !
 
 ### URLs des services
 
