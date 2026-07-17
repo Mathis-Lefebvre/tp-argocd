@@ -1,0 +1,108 @@
+name: 🗑️ Détruire l'infrastructure
+
+# Déclenché manuellement depuis l'onglet "Actions" de GitHub
+on:
+  workflow_dispatch:
+    inputs:
+      cluster_name:
+        description: 'Nom du cluster Kind à supprimer'
+        required: true
+        default: 'devhub'
+        type: string
+      confirm:
+        description: 'Tapez "DESTROY" pour confirmer la destruction'
+        required: true
+        type: string
+      stop_git_daemon:
+        description: 'Arrêter le daemon Git local (port 9000)'
+        required: false
+        default: true
+        type: boolean
+
+# IMPORTANT : ce workflow tourne sur votre machine locale via un self-hosted runner
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Garde-fou : confirmation obligatoire
+  # ─────────────────────────────────────────────────────────────
+  confirm:
+    name: 🛡️ Vérification confirmation
+    runs-on: self-hosted
+    steps:
+      - name: Vérifier la confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+            echo "❌ Confirmation invalide !"
+            echo "   Vous devez taper exactement 'DESTROY' pour confirmer."
+            echo "   Valeur reçue : '${{ inputs.confirm }}'"
+            exit 1
+          fi
+          echo "✅ Confirmation valide — destruction en cours..."
+
+      - name: Vérifier que le cluster existe
+        run: |
+          if kind get clusters 2>/dev/null | grep -q "^${{ inputs.cluster_name }}$"; then
+            echo "✅ Cluster '${{ inputs.cluster_name }}' trouvé"
+          else
+            echo "⚠️  Cluster '${{ inputs.cluster_name }}' introuvable (peut-être déjà supprimé ?)"
+            echo "Clusters existants :"
+            kind get clusters 2>/dev/null || echo "  (aucun)"
+          fi
+
+  # ─────────────────────────────────────────────────────────────
+  # Nettoyage : arrêter le daemon Git
+  # ─────────────────────────────────────────────────────────────
+  stop-daemon:
+    name: 🛑 Arrêt du daemon Git
+    runs-on: self-hosted
+    needs: confirm
+    if: ${{ inputs.stop_git_daemon == true }}
+    steps:
+      - name: Arrêter le daemon Git local
+        run: |
+          echo "🛑 Arrêt du daemon Git sur port 9000..."
+          pkill -f "git daemon.*9000" 2>/dev/null && echo "✅ Daemon arrêté" || echo "ℹ️  Daemon déjà arrêté"
+
+  # ─────────────────────────────────────────────────────────────
+  # Destruction du cluster
+  # ─────────────────────────────────────────────────────────────
+  destroy:
+    name: 💥 Destruction du cluster Kind
+    runs-on: self-hosted
+    needs: confirm
+    if: always() && needs.confirm.result == 'success'
+    steps:
+      - name: Lister l'état avant suppression
+        run: |
+          echo "=== État avant suppression ==="
+          kubectl get applications -n argocd 2>/dev/null || echo "(ArgoCD inaccessible)"
+          kubectl get nodes 2>/dev/null || echo "(Cluster inaccessible)"
+
+      - name: Supprimer le cluster Kind
+        run: |
+          echo "💥 Suppression du cluster '${{ inputs.cluster_name }}'..."
+          kind delete cluster --name ${{ inputs.cluster_name }} && \
+            echo "✅ Cluster supprimé" || \
+            echo "⚠️  Le cluster n'existait pas ou déjà supprimé"
+
+      - name: Nettoyer les images Docker locales (optionnel)
+        run: |
+          echo "=== Images Docker DevHub ==="
+          docker images | grep "ghcr.io/${{ github.repository_owner }}" || echo "(Aucune image DevHub trouvée)"
+          echo ""
+          echo "ℹ️  Les images ne sont pas supprimées automatiquement."
+          echo "    Pour les supprimer manuellement :"
+          echo "    docker rmi \$(docker images 'ghcr.io/${{ github.repository_owner }}/*' -q)"
+
+      - name: Résumé final
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════╗"
+          echo "║   ✅  Infrastructure '${{ inputs.cluster_name }}' détruite   ║"
+          echo "╠══════════════════════════════════════════════════════╣"
+          echo "║                                                      ║"
+          echo "║  Clusters Kind restants :                            ║"
+          kind get clusters 2>/dev/null | sed 's/^/║    • /' || echo "║    (aucun)"
+          echo "║                                                      ║"
+          echo "║  Pour redéployer :                                   ║"
+          echo "║  → Actions → 🚀 Déployer l'infrastructure            ║"
+          echo "╚══════════════════════════════════════════════════════╝"

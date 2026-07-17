@@ -1,0 +1,262 @@
+name: 🚀 Déployer l'infrastructure
+
+# Déclenché manuellement depuis l'onglet "Actions" de GitHub
+on:
+  workflow_dispatch:
+    inputs:
+      cluster_name:
+        description: 'Nom du cluster Kind'
+        required: true
+        default: 'devhub'
+        type: string
+      skip_images:
+        description: 'Passer le build des images Docker (si déjà buildées)'
+        required: false
+        default: false
+        type: boolean
+      bootstrap_apps:
+        description: 'Bootstrapper les applications ArgoCD (App of Apps)'
+        required: false
+        default: true
+        type: boolean
+
+# IMPORTANT : ce workflow tourne sur votre machine locale via un self-hosted runner
+# Pour l'installer : repo GitHub → Settings → Actions → Runners → New self-hosted runner
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # ÉTAPE 1 : Vérification des prérequis
+  # ─────────────────────────────────────────────────────────────
+  prerequisites:
+    name: 🔍 Vérification des outils
+    runs-on: self-hosted
+    outputs:
+      cluster_exists: ${{ steps.check_cluster.outputs.exists }}
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Vérifier les outils requis
+        run: |
+          echo "=== Vérification des outils ==="
+          for tool in docker kubectl helm kind argocd; do
+            if command -v $tool &>/dev/null; then
+              echo "  ✅ $tool : $(command -v $tool)"
+            else
+              echo "  ❌ $tool manquant !"
+              exit 1
+            fi
+          done
+          echo ""
+          echo "=== Versions ==="
+          docker version --format '  Docker  : {{.Server.Version}}'
+          kubectl version --client --short 2>/dev/null || kubectl version --client
+          helm version --short
+          kind version
+          argocd version --client --short 2>/dev/null || true
+
+      - name: Vérifier si le cluster existe déjà
+        id: check_cluster
+        run: |
+          if kind get clusters 2>/dev/null | grep -q "^${{ inputs.cluster_name }}$"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️  Le cluster '${{ inputs.cluster_name }}' existe déjà"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  Le cluster '${{ inputs.cluster_name }}' n'existe pas encore"
+          fi
+
+  # ─────────────────────────────────────────────────────────────
+  # ÉTAPE 2 : Création du cluster Kind
+  # ─────────────────────────────────────────────────────────────
+  cluster:
+    name: ☸️ Création cluster Kind
+    runs-on: self-hosted
+    needs: prerequisites
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Créer le cluster Kind
+        run: |
+          if [ "${{ needs.prerequisites.outputs.cluster_exists }}" = "true" ]; then
+            echo "⚠️  Cluster déjà existant — suppression et recréation..."
+            kind delete cluster --name ${{ inputs.cluster_name }}
+            sleep 5
+          fi
+          echo "🚀 Création du cluster '${{ inputs.cluster_name }}'..."
+          kind create cluster --name ${{ inputs.cluster_name }} --config cluster/kind-config.yaml
+          echo "✅ Cluster créé"
+
+      - name: Vérifier les nœuds
+        run: |
+          echo "=== Nœuds du cluster ==="
+          kubectl get nodes -o wide
+          echo ""
+          kubectl cluster-info --context kind-${{ inputs.cluster_name }}
+
+  # ─────────────────────────────────────────────────────────────
+  # ÉTAPE 3 : Build des images Docker
+  # ─────────────────────────────────────────────────────────────
+  build-images:
+    name: 🐳 Build & Import des images
+    runs-on: self-hosted
+    needs: cluster
+    if: ${{ inputs.skip_images == false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [annuaire, planning, notif]
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Build image ${{ matrix.service }}
+        run: |
+          echo "🔨 Build de ${{ matrix.service }}..."
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:dev \
+            services/${{ matrix.service }}
+          echo "✅ Image buildée"
+
+      - name: Import image dans Kind
+        run: |
+          echo "📦 Import de ${{ matrix.service }} dans le cluster Kind..."
+          kind load docker-image \
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:dev \
+            --name ${{ inputs.cluster_name }}
+          echo "✅ Import terminé"
+
+  # ─────────────────────────────────────────────────────────────
+  # ÉTAPE 4 : Installation ArgoCD + Ingress-NGINX
+  # ─────────────────────────────────────────────────────────────
+  install-argocd:
+    name: 🔵 Installation ArgoCD & Ingress-NGINX
+    runs-on: self-hosted
+    needs: [cluster, build-images]
+    # Si on saute les images, on dépend quand même du cluster
+    if: always() && needs.cluster.result == 'success'
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Ajouter les repos Helm
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm 2>/dev/null || true
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx 2>/dev/null || true
+          helm repo update
+
+      - name: Installer Ingress-NGINX
+        run: |
+          echo "📦 Installation d'Ingress-NGINX..."
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            --version 4.11.3 \
+            --set controller.service.type=NodePort \
+            --set-string controller.nodeSelector."ingress-ready"=true \
+            --set "controller.tolerations[0].key=node-role.kubernetes.io/control-plane" \
+            --set "controller.tolerations[0].operator=Exists" \
+            --set "controller.tolerations[0].effect=NoSchedule" \
+            --set controller.hostPort.enabled=true \
+            --set controller.publishService.enabled=false
+
+      - name: Attendre Ingress-NGINX
+        run: |
+          echo "⏳ Attente du pod Ingress-NGINX..."
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=180s
+          echo "✅ Ingress-NGINX prêt"
+
+      - name: Installer ArgoCD
+        run: |
+          echo "📦 Installation d'ArgoCD..."
+          helm upgrade --install argocd argo/argo-cd \
+            --namespace argocd --create-namespace \
+            --version 7.6.12 \
+            -f platform/argocd/values.yaml
+          echo "✅ ArgoCD installé"
+
+      - name: Attendre ArgoCD
+        run: |
+          echo "⏳ Attente des pods ArgoCD..."
+          kubectl wait --namespace argocd \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/name=argocd-server \
+            --timeout=300s
+          echo "✅ ArgoCD server prêt"
+
+      - name: Afficher le mot de passe admin
+        run: |
+          echo "=== 🔑 Credentials ArgoCD ==="
+          echo "URL    : http://argocd.devhub.local"
+          echo "Login  : admin"
+          echo -n "Password : "
+          kubectl -n argocd get secret argocd-initial-admin-secret \
+            -o jsonpath='{.data.password}' | base64 -d
+          echo ""
+
+  # ─────────────────────────────────────────────────────────────
+  # ÉTAPE 5 : Bootstrap App of Apps
+  # ─────────────────────────────────────────────────────────────
+  bootstrap:
+    name: 🌳 Bootstrap App of Apps
+    runs-on: self-hosted
+    needs: install-argocd
+    if: ${{ inputs.bootstrap_apps == true && needs.install-argocd.result == 'success' }}
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Démarrer le Git Daemon local
+        run: |
+          echo "📂 Démarrage du daemon Git local (port 9000)..."
+          # Tuer un daemon précédent s'il tourne déjà
+          pkill -f "git daemon.*9000" 2>/dev/null || true
+          sleep 2
+          git daemon \
+            --base-path=. \
+            --export-all \
+            --enable=receive-pack \
+            --reuseaddr \
+            --port=9000 \
+            --verbose \
+            --detach
+          sleep 3
+          echo "✅ Daemon Git démarré sur git://localhost:9000"
+
+      - name: Appliquer l'AppProject devhub
+        run: |
+          echo "📋 Création de l'AppProject devhub..."
+          kubectl apply -f platform/projects/devhub.yaml
+          echo "✅ AppProject appliqué"
+
+      - name: Appliquer la Root Application
+        run: |
+          echo "🌳 Création de la Root Application (App of Apps)..."
+          kubectl apply -f platform/bootstrap/root-app.yaml
+          echo "✅ Root App créée"
+
+      - name: Attendre la synchronisation initiale
+        run: |
+          echo "⏳ Attente de la synchronisation ArgoCD (60s)..."
+          sleep 60
+          echo "=== État des applications ==="
+          kubectl get applications -n argocd 2>/dev/null || true
+
+      - name: Résumé final
+        run: |
+          echo ""
+          echo "╔════════════════════════════════════════════════════╗"
+          echo "║   ✅  Infrastructure DevHub déployée avec succès   ║"
+          echo "╠════════════════════════════════════════════════════╣"
+          echo "║                                                    ║"
+          echo "║  🔵 ArgoCD UI : http://argocd.devhub.local        ║"
+          echo "║  👤 Login     : admin / DevHubPassword123!         ║"
+          echo "║  🌐 Annuaire  : http://annuaire.devhub.local       ║"
+          echo "║  📅 Planning  : http://planning.devhub.local       ║"
+          echo "║                                                    ║"
+          echo "║  ⚠️  Vérifiez que /etc/hosts est configuré        ║"
+          echo "╚════════════════════════════════════════════════════╝"
+          echo ""
+          kubectl get applications -n argocd 2>/dev/null || true
