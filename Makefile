@@ -5,7 +5,7 @@ INGRESS_CHART_VERSION ?= 4.11.3
 
 SERVICES := annuaire planning notif
 
-.PHONY: help tools-check cluster-up cluster-down argocd-install argocd-password hosts-print images clean
+.PHONY: help tools-check cluster-up cluster-down argocd-install argocd-password hosts-print images clean runner-install runner-status runner-stop
 
 help:
 	@echo "Cibles disponibles :"
@@ -17,6 +17,10 @@ help:
 	@echo "  hosts-print       - affiche les lignes à ajouter dans /etc/hosts"
 	@echo "  images            - construit les 3 images de services"
 	@echo "  clean             - détruit le cluster et nettoie les artefacts locaux"
+	@echo ""
+	@echo "  runner-install    - installe le self-hosted runner GitHub Actions en service auto"
+	@echo "  runner-status     - vérifie l'état du runner"
+	@echo "  runner-stop       - arrête et désinstalle le runner"
 
 tools-check:
 	@for t in docker kubectl helm kind argocd; do \
@@ -85,3 +89,42 @@ images:
 
 clean:
 	kind delete cluster --name $(CLUSTER) 2>/dev/null || true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub Actions Self-Hosted Runner
+# ─────────────────────────────────────────────────────────────────────────────
+# Obtenir le token sur :
+#   https://github.com/Mathis-Lefebvre/tp-argocd/settings/actions/runners/new
+#
+# Usage : make runner-install TOKEN=<votre_token>
+# ─────────────────────────────────────────────────────────────────────────────
+RUNNER_DIR ?= $(HOME)/actions-runner
+
+runner-install:
+	@if [ -z "$(TOKEN)" ]; then \
+		echo "❌ TOKEN manquant. Usage : make runner-install TOKEN=<votre_token>"; \
+		echo "   Token disponible sur : https://github.com/Mathis-Lefebvre/tp-argocd/settings/actions/runners/new"; \
+		exit 1; \
+	fi
+	bash scripts/install-runner.sh --token "$(TOKEN)"
+
+runner-status:
+	@echo "=== État du service GitHub Actions Runner ==="
+	@if systemctl is-active --quiet actions.runner.* 2>/dev/null; then \
+		sudo systemctl status "$$(systemctl list-units --type=service | grep actions.runner | awk '{print $$1}' | head -1)" --no-pager; \
+	elif [ -f "$(RUNNER_DIR)/runner.log" ]; then \
+		echo "Runner en mode background (pas de service systemd)"; \
+		tail -20 $(RUNNER_DIR)/runner.log; \
+	else \
+		echo "⚠️  Runner non démarré ou non configuré"; \
+	fi
+
+runner-stop:
+	@echo "🛑 Arrêt et désinstallation du runner..."
+	@if systemctl is-active --quiet actions.runner.* 2>/dev/null; then \
+		SVC=$$(systemctl list-units --type=service | grep actions.runner | awk '{print $$1}' | head -1); \
+		cd $(RUNNER_DIR) && sudo ./svc.sh stop && sudo ./svc.sh uninstall; \
+		echo "✅ Service systemd supprimé"; \
+	else \
+		pkill -f "$(RUNNER_DIR)/run.sh" 2>/dev/null && echo "✅ Runner arrêté" || echo "ℹ️  Runner déjà arrêté"; \
+	fi
