@@ -210,20 +210,24 @@ jobs:
 
       - name: Démarrer le Git Daemon local
         run: |
-          echo "📂 Démarrage du daemon Git local (port 9000)..."
-          # Tuer un daemon précédent s'il tourne déjà
+          echo "Demarrage du daemon Git local (port 9000)..."
           pkill -f "git daemon.*9000" 2>/dev/null || true
           sleep 2
+          # Utiliser le chemin absolu du workspace pour eviter les erreurs de chemin
           git daemon \
-            --base-path=. \
+            --base-path="${GITHUB_WORKSPACE}" \
             --export-all \
             --enable=receive-pack \
             --reuseaddr \
             --port=9000 \
             --verbose \
             --detach
-          sleep 3
-          echo "✅ Daemon Git démarré sur git://localhost:9000"
+          # Attendre que le daemon soit vraiment pret (max 15s)
+          for i in $(seq 1 15); do
+            nc -z localhost 9000 2>/dev/null && echo "Daemon pret (${i}s)" && break
+            sleep 1
+          done
+          nc -z localhost 9000 || { echo "ERREUR: daemon Git inaccessible"; exit 1; }
 
       - name: Appliquer l'AppProject devhub
         run: |
@@ -246,17 +250,20 @@ jobs:
 
       - name: Résumé final
         run: |
+          ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+            -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo "N/A")
           echo ""
-          echo "╔════════════════════════════════════════════════════╗"
-          echo "║   ✅  Infrastructure DevHub déployée avec succès   ║"
-          echo "╠════════════════════════════════════════════════════╣"
-          echo "║                                                    ║"
-          echo "║  🔵 ArgoCD UI : http://argocd.devhub.local        ║"
-          echo "║  👤 Login     : admin / DevHubPassword123!         ║"
-          echo "║  🌐 Annuaire  : http://annuaire.devhub.local       ║"
-          echo "║  📅 Planning  : http://planning.devhub.local       ║"
-          echo "║                                                    ║"
-          echo "║  ⚠️  Vérifiez que /etc/hosts est configuré        ║"
-          echo "╚════════════════════════════════════════════════════╝"
+          echo "===================================================="
+          echo "   Infrastructure DevHub deployee avec succes !"
+          echo "===================================================="
+          echo ""
+          echo "  ArgoCD UI : http://argocd.devhub.local"
+          echo "  Login     : admin"
+          echo "  Password  : ${ARGOCD_PASSWORD}"
+          echo ""
+          echo "  Annuaire  : http://annuaire.devhub.local"
+          echo "  Planning  : http://planning.devhub.local"
+          echo ""
+          echo "===================================================="
           echo ""
           kubectl get applications -n argocd 2>/dev/null || true
