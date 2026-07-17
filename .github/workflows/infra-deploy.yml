@@ -132,9 +132,8 @@ jobs:
   install-argocd:
     name: 🔵 Installation ArgoCD & Ingress-NGINX
     runs-on: self-hosted
-    needs: [cluster, build-images]
-    # Si on saute les images, on dépend quand même du cluster
-    if: always() && needs.cluster.result == 'success'
+    needs: cluster
+    if: needs.cluster.result == 'success'
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
@@ -203,7 +202,7 @@ jobs:
     name: 🌳 Bootstrap App of Apps
     runs-on: self-hosted
     needs: install-argocd
-    if: ${{ inputs.bootstrap_apps == true && needs.install-argocd.result == 'success' }}
+    if: needs.install-argocd.result == 'success'
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
