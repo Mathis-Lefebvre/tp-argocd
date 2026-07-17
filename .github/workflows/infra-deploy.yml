@@ -20,8 +20,8 @@ on:
         default: true
         type: boolean
 
-# IMPORTANT : ce workflow tourne sur votre machine locale via un self-hosted runner
-# Pour l'installer : repo GitHub → Settings → Actions → Runners → New self-hosted runner
+# Le runner est configuré automatiquement par scripts/setup.ps1 (à exécuter une seule fois).
+# Il démarre ensuite automatiquement à chaque login Windows — aucune commande nécessaire.
 jobs:
   # ─────────────────────────────────────────────────────────────
   # ÉTAPE 1 : Vérification des prérequis
