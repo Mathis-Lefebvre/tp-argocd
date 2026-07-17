@@ -216,13 +216,15 @@ Le mot de passe change à chaque fois que tu recrées le cluster. Pour l'obtenir
 
 ### URLs des services
 
-| Service | URL |
-|---|---|
-| ArgoCD UI | http://argocd.devhub.local |
-| Annuaire (dev) | http://annuaire.devhub.local |
-| Planning (dev) | http://planning.devhub.local |
-| Notif (dev) | http://notif.devhub.local |
-| Preview branch | http://annuaire-feature-demo-prof.devhub.local |
+| Service | URL de base | URL de test / de démonstration |
+|---|---|---|
+| **ArgoCD UI** | http://argocd.devhub.local | http://argocd.devhub.local |
+| **Annuaire (dev)** | http://annuaire.devhub.local | http://annuaire.devhub.local/students *(liste des étudiants)* |
+| **Planning (dev)** | http://planning.devhub.local | http://planning.devhub.local/docs *(documentation Swagger UI)* |
+| **Notif (dev)** | http://notif.devhub.local | *Pas d'interface Web (API de notification)* |
+| **Preview branch** | http://annuaire-feature-demo-prof.devhub.local | http://annuaire-feature-demo-prof.devhub.local/students |
+
+> **Note de démo :** Sur l'URL de base de l'Annuaire, il est normal de voir le message `Cannot GET /`. Utilisez l'URL de test `/students` pour voir l'interface. Pour le Planning, `/docs` affiche l'interface d'API interactive.
 
 ### RBAC — Droits du compte developer
 
