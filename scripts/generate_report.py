@@ -297,7 +297,7 @@ def convert_markdown_to_html(md_path, html_out_path):
         <div class="header-section">
             <h1>Compte-rendu de TP — GitOps & ArgoCD (DevHub Campus)</h1>
             <div class="header-metadata">
-                <strong>5ESGI SRC</strong> &nbsp;|&nbsp; Étudiants : Mathis Lefebvre & Evan Lefebvre
+                <strong>5ESGI SRC</strong> &nbsp;|&nbsp; Étudiants : Mathis Lefebvre & Evan Lefevre
             </div>
         </div>
     """.format(style=style)
